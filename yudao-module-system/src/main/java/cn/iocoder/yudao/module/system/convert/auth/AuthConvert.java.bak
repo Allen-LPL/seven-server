@@ -1,0 +1,174 @@
+package cn.iocoder.yudao.module.system.convert.auth;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.iocoder.yudao.framework.common.biz.system.oauth2.dto.OAuth2AccessTokenRespDTO;
+import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.system.api.mail.dto.code.EmailCodeSendReqDTO;
+import cn.iocoder.yudao.module.system.api.mail.dto.code.EmailCodeUseReqDTO;
+import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeSendReqDTO;
+import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeUseReqDTO;
+import cn.iocoder.yudao.module.system.api.social.dto.SocialUserBindReqDTO;
+import cn.iocoder.yudao.module.system.api.social.dto.SocialUserUnbindReqDTO;
+import cn.iocoder.yudao.module.system.api.logger.dto.LoginLogCreateReqDTO;
+import cn.iocoder.yudao.module.system.controller.admin.auth.vo.*;
+import cn.iocoder.yudao.module.system.dal.dataobject.oauth2.OAuth2AccessTokenDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.permission.MenuDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.logger.LoginLogTypeEnum;
+import cn.iocoder.yudao.module.system.enums.logger.LoginResultEnum;
+import cn.iocoder.yudao.module.system.enums.mail.EmailSceneEnum;
+import cn.iocoder.yudao.module.system.enums.permission.MenuTypeEnum;
+import cn.iocoder.yudao.module.system.enums.sms.SmsSceneEnum;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+
+import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.convertList;
+import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.convertSet;
+import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.filterList;
+import static cn.iocoder.yudao.module.system.dal.dataobject.permission.MenuDO.ID_ROOT;
+
+@Mapper
+public interface AuthConvert {
+
+    AuthConvert INSTANCE = Mappers.getMapper(AuthConvert.class);
+
+    AuthLoginRespVO convert(OAuth2AccessTokenDO bean);
+
+    default AuthLoginRespVO convert(OAuth2AccessTokenRespDTO bean) {
+        AuthLoginRespVO respVO = new AuthLoginRespVO();
+        respVO.setAccessToken(bean.getAccessToken());
+        respVO.setRefreshToken(bean.getRefreshToken());
+        respVO.setUserId(bean.getUserId());
+        respVO.setExpiresTime(bean.getExpiresTime());
+        return respVO;
+    }
+
+    AuthPermissionInfoRespVO.MenuVO convertTreeNode(MenuDO menu);
+
+    /**
+     * 手动实现权限信息转换，确保正确映射所有字段
+     */
+    default AuthPermissionInfoRespVO convert(AdminUserDO user, List<RoleDO> roleList, List<MenuDO> menuList) {
+        AuthPermissionInfoRespVO respVO = new AuthPermissionInfoRespVO();
+        
+        // 转换用户信息
+        if (user != null) {
+            AuthPermissionInfoRespVO.UserVO userVO = AuthPermissionInfoRespVO.UserVO.builder()
+                    .id(user.getId())
+                    .nickname(user.getNickname())
+                    .avatar(user.getAvatar())
+                    .deptId(user.getDeptId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .build();
+            respVO.setUser(userVO);
+        }
+        
+        // 转换角色信息
+        if (CollUtil.isNotEmpty(roleList)) {
+            Set<String> roles = convertSet(roleList, RoleDO::getCode);
+            respVO.setRoles(roles);
+        } else {
+            respVO.setRoles(new HashSet<>());
+        }
+        
+        // 转换权限信息
+        if (CollUtil.isNotEmpty(menuList)) {
+            Set<String> permissions = convertSet(menuList, MenuDO::getPermission);
+            permissions.removeIf(permission -> permission == null || permission.trim().isEmpty());
+            respVO.setPermissions(permissions);
+        } else {
+            respVO.setPermissions(new HashSet<>());
+        }
+        
+        // 转换菜单树
+        List<AuthPermissionInfoRespVO.MenuVO> menus = buildMenuTree(menuList);
+        respVO.setMenus(menus);
+        
+        return respVO;
+    }
+
+    /**
+     * 将菜单列表，构建成菜单树
+     *
+     * @param menuList 菜单列表
+     * @return 菜单树
+     */
+    default List<AuthPermissionInfoRespVO.MenuVO> buildMenuTree(List<MenuDO> menuList) {
+        if (CollUtil.isEmpty(menuList)) {
+            return Collections.emptyList();
+        }
+        // 移除按钮
+        menuList.removeIf(menu -> menu.getType().equals(MenuTypeEnum.BUTTON.getType()));
+        // 排序，保证菜单的有序性
+        menuList.sort(Comparator.comparing(MenuDO::getSort));
+
+        // 构建菜单树
+        // 使用 LinkedHashMap 的原因，是为了排序 。实际也可以用 Stream API ，就是太丑了。
+        Map<Long, AuthPermissionInfoRespVO.MenuVO> treeNodeMap = new LinkedHashMap<>();
+        menuList.forEach(menu -> treeNodeMap.put(menu.getId(), AuthConvert.INSTANCE.convertTreeNode(menu)));
+        // 处理父子关系
+        treeNodeMap.values().stream().filter(node -> !node.getParentId().equals(ID_ROOT)).forEach(childNode -> {
+            // 获得父节点
+            AuthPermissionInfoRespVO.MenuVO parentNode = treeNodeMap.get(childNode.getParentId());
+            if (parentNode == null) {
+                LoggerFactory.getLogger(getClass()).error("[buildRouterTree][resource({}) 找不到父资源({})]",
+                        childNode.getId(), childNode.getParentId());
+                return;
+            }
+            // 将自己添加到父节点中
+            if (parentNode.getChildren() == null) {
+                parentNode.setChildren(new ArrayList<>());
+            }
+            parentNode.getChildren().add(childNode);
+        });
+        // 获得到所有的根节点
+        return filterList(treeNodeMap.values(), node -> ID_ROOT.equals(node.getParentId()));
+    }
+
+    SocialUserBindReqDTO convert(Long userId, Integer userType, AuthSocialLoginReqVO reqVO);
+
+    SmsCodeSendReqDTO convert(AuthSmsSendReqVO reqVO);
+
+    SmsCodeUseReqDTO convert(AuthSmsLoginReqVO reqVO, Integer scene, String usedIp);
+
+    default SmsCodeUseReqDTO convert(AuthSmsLoginReqVO reqVO, SmsSceneEnum scene, String usedIp) {
+        return convert(reqVO, scene.getScene(), usedIp);
+    }
+
+    // 社交相关转换方法（暂时注释掉，避免编译错误）
+    // SocialUserBindReqDTO convert(Long userId, Integer userType, AuthSocialBindReqVO reqVO);
+    // SocialUserUnbindReqDTO convert(Long userId, Integer userType, AuthSocialUnbindReqVO reqVO);
+
+    // 新增邮箱验证码相关转换方法
+    default EmailCodeSendReqDTO convertEmailCodeSend(AuthEmailSendReqVO reqVO, String createIp) {
+        return EmailCodeSendReqDTO.builder()
+                .email(reqVO.getEmail())
+                .scene(reqVO.getScene())
+                .createIp(createIp)
+                .build();
+    }
+
+    default EmailCodeUseReqDTO convertEmailCodeUse(AuthEmailLoginReqVO reqVO, EmailSceneEnum scene, String usedIp) {
+        return EmailCodeUseReqDTO.builder()
+                .email(reqVO.getEmail())
+                .code(reqVO.getCode())
+                .scene(scene.getScene())
+                .usedIp(usedIp)
+                .build();
+    }
+
+    // AuthSessionInfoRespVO convert(AdminUserDO user); // 暂时注释掉，避免编译错误
+
+    LoginLogCreateReqDTO convert(String username, String userAgent, String ip, Integer logType, Integer result);
+
+    default LoginLogCreateReqDTO convert(String username, String userAgent, String ip, LoginLogTypeEnum logType, LoginResultEnum result) {
+        return convert(username, userAgent, ip, logType.getType(), result.getResult());
+    }
+
+}
