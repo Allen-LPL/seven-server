@@ -1,6 +1,7 @@
 ######################################################################
 # Build Tools
 
+LOG_FILE_IS_UNDEFINED
 /sqlbak/
 .gitee
 .github
