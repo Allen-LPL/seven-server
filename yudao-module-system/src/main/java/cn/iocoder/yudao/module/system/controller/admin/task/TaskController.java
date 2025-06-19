@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.system.api.task.dto.TaskStrategyConfig;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskReviewReqVO;
 import com.alibaba.fastjson.JSONObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -69,6 +71,26 @@ public class TaskController {
       return CommonResult.success(pageResult);
     }catch (Exception e) {
       log.error("查询失败，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @GetMapping("/allocate/{id}")
+  public CommonResult<String> allocate(@PathVariable Long id) {
+    try {
+      return imageTaskApiService.allocateTask(id);
+    }catch (Exception e) {
+      log.error("allocate error，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @PostMapping("/review")
+  public CommonResult<String> review(@RequestBody ImageTaskReviewReqVO reviewReqVO) {
+    try {
+      return imageTaskApiService.reviewTask(reviewReqVO);
+    }catch (Exception e) {
+      log.error("allocate error，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }

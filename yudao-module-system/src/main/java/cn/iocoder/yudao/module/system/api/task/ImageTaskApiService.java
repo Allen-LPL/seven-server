@@ -3,13 +3,13 @@ package cn.iocoder.yudao.module.system.api.task;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
-import cn.iocoder.yudao.framework.common.util.io.FileUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskReviewReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
@@ -274,6 +274,10 @@ public class ImageTaskApiService {
 
 
   public CommonResult<String> allocateTask(Long taskId) {
+    return CommonResult.success("void");
+  }
+
+  public CommonResult<String> reviewTask(ImageTaskReviewReqVO imageTaskReviewReqVO) {
     return CommonResult.success("void");
   }
 

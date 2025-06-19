@@ -20,9 +20,6 @@ public class ImageTaskQueryReqVO extends PageParam {
   @Schema(description = "创建人", example = "1")
   private Long creatorId;
 
-  @Schema(description = "分配人", example = "1")
-  private Long adminId;
-
   @Schema(description = "审核人", example = "1")
   private Long reviewId;
 
