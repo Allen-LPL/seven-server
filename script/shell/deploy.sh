@@ -9,9 +9,9 @@ SOURCE_PATH=$BASE_PATH/build
 # 服务名称。同时约定部署服务的 jar 包名字也为它。
 SERVER_NAME=yudao-server
 # 环境
-PROFILES_ACTIVE=development
+PROFILES_ACTIVE=dev
 # 健康检查 URL
-HEALTH_CHECK_URL=http://127.0.0.1:48080/actuator/health/
+HEALTH_CHECK_URL=http://115.29.204.105:48080/actuator/health/
 
 # heapError 存放路径
 HEAP_ERROR_PATH=$BASE_PATH/heapError
@@ -99,8 +99,8 @@ function start() {
     echo "[start] PROFILES: $PROFILES_ACTIVE"
 
     # 开始启动
-    BUILD_ID=dontKillMe nohup /usr/local/jdk1.8.0_391/bin/java -server $JAVA_OPS $JAVA_AGENT -jar $BASE_PATH/$SERVER_NAME.jar --spring.profiles.active=$PROFILES_ACTIVE &
-    echo nohup /usr/local/jdk1.8.0_391/bin/java -server $JAVA_OPS $JAVA_AGENT -jar $BASE_PATH/$SERVER_NAME.jar --spring.profiles.active=$PROFILES_ACTIVE
+    BUILD_ID=dontKillMe nohup proxychains4 /usr/local/jdk-21.0.6/bin/java -server $JAVA_OPS $JAVA_AGENT -jar $BASE_PATH/$SERVER_NAME.jar --spring.profiles.active=$PROFILES_ACTIVE &
+    echo nohup proxychains4 /usr/local/jdk-21.0.6/bin/java -server $JAVA_OPS $JAVA_AGENT -jar $BASE_PATH/$SERVER_NAME.jar --spring.profiles.active=$PROFILES_ACTIVE
     echo "[start] 启动 $BASE_PATH/$SERVER_NAME 完成"
 }
 
