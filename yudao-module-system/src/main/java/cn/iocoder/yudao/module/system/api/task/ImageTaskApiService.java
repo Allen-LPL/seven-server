@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskReviewReqVO;
@@ -273,7 +274,7 @@ public class ImageTaskApiService {
   }
 
 
-  public CommonResult<String> allocateTask(Long taskId) {
+  public CommonResult<String> allocateTask(ImageTaskAllocateReqVO allocateReqVO) {
     return CommonResult.success("void");
   }
 

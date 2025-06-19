@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.system.api.task.ImageTaskApiService;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.TaskStrategyConfig;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
@@ -75,10 +76,10 @@ public class TaskController {
     }
   }
 
-  @GetMapping("/allocate/{id}")
-  public CommonResult<String> allocate(@PathVariable Long id) {
+  @PostMapping("/allocate")
+  public CommonResult<String> allocate(@RequestBody ImageTaskAllocateReqVO allocateReqVO) {
     try {
-      return imageTaskApiService.allocateTask(id);
+      return imageTaskApiService.allocateTask(allocateReqVO);
     }catch (Exception e) {
       log.error("allocate error，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
