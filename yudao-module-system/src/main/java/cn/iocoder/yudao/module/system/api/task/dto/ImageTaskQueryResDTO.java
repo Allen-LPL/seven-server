@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class ImageTaskQueryResDTO {
 
+  private Long id;
+
   private Long taskId;
 
   /**
@@ -119,5 +121,7 @@ public class ImageTaskQueryResDTO {
   private List<String> articleJournalList;
 
   private String fileType;
+
+  private String role;
 
 }

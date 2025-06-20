@@ -14,10 +14,10 @@ import org.apache.ibatis.annotations.Mapper;
 public interface ImageTaskMapper extends BaseMapperX<ImageTaskDO> {
 
   default PageResult<ImageTaskDO> selectPage(ImageTaskQueryReqVO reqVO) {
+
     return selectPage(reqVO, new LambdaQueryWrapperX<ImageTaskDO>()
         .eqIfPresent(ImageTaskDO::getTaskType, reqVO.getTaskType())
         .eqIfPresent(ImageTaskDO::getTaskId, reqVO.getTaskId())
-        .eqIfPresent(ImageTaskDO::getAdminId, reqVO.getAdminId())
         .betweenIfPresent(ImageTaskDO::getCreateTime, reqVO.getStartTime(), reqVO.getEndTime())
         .orderByDesc(ImageTaskDO::getCreateTime,ImageTaskDO::getUpdateTime));
   }

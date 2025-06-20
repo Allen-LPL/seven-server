@@ -18,6 +18,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ImageTaskDO extends BaseDO {
 
+  private Long id;
+
   private Long taskId;
 
   /**

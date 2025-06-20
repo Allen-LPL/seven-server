@@ -1,19 +1,24 @@
 package cn.iocoder.yudao.module.system.api.task;
 
+import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
-import cn.iocoder.yudao.framework.common.util.io.FileUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskReviewReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
+import cn.iocoder.yudao.module.system.service.permission.PermissionService;
+import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
@@ -50,6 +55,12 @@ public class ImageTaskApiService {
   @Resource
   private DeptService deptService;
 
+  @Resource
+  private RoleService roleService;
+
+  @Resource
+  private PermissionService permissionService;
+
 
   private static final String UPLOAD_PATH = "./task/%s";
 
@@ -58,31 +69,49 @@ public class ImageTaskApiService {
     PageResult<ImageTaskQueryResDTO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImageTaskQueryResDTO.class);
     List<ImageTaskQueryResDTO> queryResDTOList = pageResult.getList();
     for (ImageTaskQueryResDTO queryResDTO : queryResDTOList) {
-      // 补充创建用户信息
-      AdminUserDO createUser = adminUserService.getUser(queryResDTO.getCreatorId());
-      if (Objects.nonNull(createUser)) {
-        queryResDTO.setUserName(createUser.getUsername());
+
+      // 当前用户角色
+      AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
+      if (Objects.isNull(adminUserDO)) {
+        throw new RuntimeException("用户未登录");
       }
-      DeptDO deptDO = deptService.getDept(createUser.getDeptId());
-      if (Objects.nonNull(deptDO)) {
-        queryResDTO.setUserUnit(deptDO.getName());
+      List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
+      if (CollectionUtils.isAnyEmpty(userRoles)){
+        throw new RuntimeException("用户未分配角色");
+      }
+      RoleDO roleDo = userRoles.get(0);
+      queryResDTO.setRole(roleDo.getCode());
+
+      // 补充创建用户信息
+      if (roleDo.getCode().equalsIgnoreCase("super_admin") || roleDo.getCode().equalsIgnoreCase("Research_admin")){
+        AdminUserDO createUser = adminUserService.getUser(queryResDTO.getCreatorId());
+        if (Objects.nonNull(createUser)) {
+          queryResDTO.setUserName(createUser.getUsername());
+          DeptDO deptDO = deptService.getDept(createUser.getDeptId());
+          if (Objects.nonNull(deptDO)) {
+            queryResDTO.setUserUnit(deptDO.getName());
+          }
+        }
       }
 
+
       // 补充审核用户信息
-      AdminUserDO reviewUser = adminUserService.getUser(queryResDTO.getReviewerId());
-      if (Objects.nonNull(reviewUser)) {
-        queryResDTO.setReviewUserName(reviewUser.getUsername());
-      }
-      DeptDO reviewDeptDO = deptService.getDept(createUser.getDeptId());
-      if (Objects.nonNull(reviewDeptDO)) {
-        queryResDTO.setReviewUserUnit(reviewDeptDO.getName());
+      if (!roleDo.getCode().equalsIgnoreCase("Common")){
+        AdminUserDO reviewUser = adminUserService.getUser(queryResDTO.getReviewerId());
+        if (Objects.nonNull(reviewUser)) {
+          queryResDTO.setReviewUserName(reviewUser.getUsername());
+          DeptDO reviewDeptDO = deptService.getDept(reviewUser.getDeptId());
+          if (Objects.nonNull(reviewDeptDO)) {
+            queryResDTO.setReviewUserUnit(reviewDeptDO.getName());
+          }
+        }
       }
 
       // 补充论文标题和杂志社
       List<String> articleTitleList = Lists.newArrayList();
       List<String> articleJournalList = Lists.newArrayList();
       if (queryResDTO.getFileType().equals("pdf")){
-        List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getTaskId());
+        List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
         for (ArticleDO articleDO : articleDOList) {
           articleTitleList.add(articleDO.getArticleTitle());
           articleJournalList.add(articleDO.getArticleJournal());
@@ -109,22 +138,11 @@ public class ImageTaskApiService {
       }
     }
 
-    // 任务ID
-    String uuid = UUID.randomUUID().toString();
-    String filePath = String.format(UPLOAD_PATH, uuid);
-
-    // 上传文件
-    MultipartFile[] files = reqVO.getFiles();
-    ImageTaskCreateResDTO imageTaskResDTO = uploadFiles(files, filePath);
-    if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isAnyEmpty(imageTaskResDTO.getSuccessFile())) {
-      return imageTaskResDTO;
-    }
-
     // 创建任务
     ImageTaskDO imageTaskDO = new ImageTaskDO();
     imageTaskDO.setCreatorId(WebFrameworkUtils.getLoginUserId());
-    imageTaskDO.setFirstImage(imageTaskResDTO.getSuccessFile().get(0));
     imageTaskDO.setTaskType(reqVO.getTaskType());
+    imageTaskDO.setFileType(reqVO.getFileType());
     if (reqVO.getTaskType() == 2) {
       imageTaskDO.setStrategyConfig(JSONObject.toJSONString(reqVO.getTaskStrategyConfig()));
     }
@@ -133,13 +151,29 @@ public class ImageTaskApiService {
       throw new RuntimeException("任务入库失败");
     }
 
+    // 任务ID
+    String filePath = String.format(UPLOAD_PATH, String.valueOf(imageTaskDO.getId()));
+
+    // 上传文件
+    MultipartFile[] files = reqVO.getFiles();
+    ImageTaskCreateResDTO imageTaskResDTO = uploadFiles(files, filePath);
+    if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isAnyEmpty(imageTaskResDTO.getSuccessFile())) {
+      return imageTaskResDTO;
+    }
+
+    // 更新任务
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(imageTaskDO.getId());
+    updateTask.setFirstImage(imageTaskResDTO.getSuccessFile().get(0));
+    imageTaskService.update(updateTask);
+
     // 创建文件
     List<String> fileList = imageTaskResDTO.getSuccessFile();
     List<ArticleDO> articleDOList = Lists.newArrayList();
     for (String fullFilePath : fileList) {
-      String fileName = fullFilePath.substring(fullFilePath.lastIndexOf("."));
+      String fileName = fullFilePath.substring(fullFilePath.lastIndexOf("/"));
       ArticleDO articleDO = new ArticleDO();
-      articleDO.setTaskId(imageTaskDO.getTaskId());
+      articleDO.setTaskId(imageTaskDO.getId());
       articleDO.setFileName(fileName);
       articleDO.setFilePath(fullFilePath);
       articleDO.setFileSize(0L);
@@ -176,7 +210,7 @@ public class ImageTaskApiService {
     ImageTaskCreateResDTO imageTaskResDTO = new ImageTaskCreateResDTO();
     try {
       // 确保上传目录存在
-      File uploadDir = new File(UPLOAD_PATH);
+      File uploadDir = new File(taskFilePath);
       if (!uploadDir.exists()) {
         uploadDir.mkdirs();
       }
@@ -202,11 +236,8 @@ public class ImageTaskApiService {
             continue;
           }
 
-          // 文件名称
-          String fileName = originalFilename.substring(originalFilename.lastIndexOf("."));
-
           // 保存文件
-          String fullLocalFilePath = taskFilePath + fileName;
+          String fullLocalFilePath = taskFilePath + "/" + originalFilename;
           Path filePath = Paths.get(fullLocalFilePath);
           Files.write(filePath, file.getBytes());
 
@@ -240,6 +271,15 @@ public class ImageTaskApiService {
 
   private boolean isValidFileSize(MultipartFile file) {
     return file.getSize() <= 10 * 1024 * 1024; // 10MB限制
+  }
+
+
+  public CommonResult<String> allocateTask(ImageTaskAllocateReqVO allocateReqVO) {
+    return CommonResult.success("void");
+  }
+
+  public CommonResult<String> reviewTask(ImageTaskReviewReqVO imageTaskReviewReqVO) {
+    return CommonResult.success("void");
   }
 
 }
