@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -201,6 +203,12 @@ public class ImageTaskApiService {
     }
 
     // todo 异步调用算法接口  算法检测
+    // todo 算法检测完后，更新任务状态
+    Long id = imageTaskDO.getId();
+    ImageTaskDO updateImageTaskStatus = new ImageTaskDO();
+    updateImageTaskStatus.setId(id);
+    updateImageTaskStatus.setTaskStatus(TaskStatusEnum.ALGO_DETECT.getCode());
+    imageTaskService.update(updateTask);
 
     return imageTaskResDTO;
   }
@@ -275,11 +283,45 @@ public class ImageTaskApiService {
 
 
   public CommonResult<String> allocateTask(ImageTaskAllocateReqVO allocateReqVO) {
-    return CommonResult.success("void");
+    Long id = allocateReqVO.getId();
+    if (Objects.isNull(id)) {
+      return CommonResult.error(500, "任务id不能为空");
+    }
+    ImageTaskDO imageTaskDO = imageTaskService.getById(id);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + id + "】");
+    }
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(id);
+    updateTask.setAdminId(WebFrameworkUtils.getLoginUserId());
+    updateTask.setReviewerId(allocateReqVO.getAdminId());
+    updateTask.setAdminTime(LocalDateTime.now());
+    Integer sum = imageTaskService.update(updateTask);
+    if (Objects.isNull(sum) || sum < 1){
+      return CommonResult.error(500, "任务分配失败，请联系管理员");
+    }
+    return CommonResult.success("success");
   }
 
-  public CommonResult<String> reviewTask(ImageTaskReviewReqVO imageTaskReviewReqVO) {
-    return CommonResult.success("void");
+  public CommonResult<String> reviewTask(ImageTaskReviewReqVO reviewReqVO) {
+
+    Long id = reviewReqVO.getId();
+    if (Objects.isNull(id)) {
+      return CommonResult.error(500, "任务id不能为空");
+    }
+    ImageTaskDO imageTaskDO = imageTaskService.getById(id);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + id + "】");
+    }
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(id);
+    updateTask.setReviewResult(reviewReqVO.getReviewResult());
+    updateTask.setAdminTime(LocalDateTime.now());
+    Integer sum = imageTaskService.update(updateTask);
+    if (Objects.isNull(sum) || sum < 1){
+      return CommonResult.error(500, "任务分配失败，请联系管理员");
+    }
+    return CommonResult.success("success");
   }
 
 }
