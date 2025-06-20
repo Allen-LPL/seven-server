@@ -32,4 +32,6 @@ public class UserRoleDO extends BaseDO {
      */
     private Long roleId;
 
+    private Long tenantId;
+
 }
