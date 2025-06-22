@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.system.dal.dataobject.task;
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SmallImageDO extends BaseDO {
+
+  @TableId
+  private Long id;
 
   private Long imageId;
 

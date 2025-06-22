@@ -5,9 +5,10 @@ import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
-import cn.iocoder.yudao.framework.common.util.date.LocalDateTimeUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
+import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
+import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
@@ -27,21 +28,11 @@ import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
-import cn.iocoder.yudao.module.system.service.task.PdfParseService;
-import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
-import io.micrometer.core.instrument.util.TimeUtils;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -71,7 +62,10 @@ public class ImageTaskApiService {
   private PermissionService permissionService;
 
   @Resource
-  private PdfParseService pdfParseService;
+  private PdfArticleParseService pdfArticleParseService;
+
+  @Resource
+  private FileUploadService fileUploadService;
 
 
   private static final String UPLOAD_PATH = "./task-file/%s";
@@ -171,7 +165,7 @@ public class ImageTaskApiService {
 
     // 上传文件
     MultipartFile[] files = reqVO.getFiles();
-    ImageTaskCreateResDTO imageTaskResDTO = uploadFiles(files, filePath);
+    ImageTaskCreateResDTO imageTaskResDTO = fileUploadService.uploadFiles(files, filePath);
     if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isAnyEmpty(imageTaskResDTO.getSuccessFile())) {
       return imageTaskResDTO;
     }
@@ -225,7 +219,7 @@ public class ImageTaskApiService {
     // 对PDF文件进行异步解析
     if ("pdf".equalsIgnoreCase(reqVO.getFileType())) {
       for (ArticleDO articleDO : articleDOList) {
-        asyncParsePdfAndUpdate(articleDO);
+        pdfArticleParseService.asyncParsePdfAndUpdate(articleDO);
       }
     }
 
@@ -236,71 +230,6 @@ public class ImageTaskApiService {
     imageTaskService.update(updateImageTaskStatus);
 
     return imageTaskResDTO;
-  }
-
-  private ImageTaskCreateResDTO uploadFiles(MultipartFile[] files, String taskFilePath){
-
-    ImageTaskCreateResDTO imageTaskResDTO = new ImageTaskCreateResDTO();
-    try {
-      // 确保上传目录存在
-      File uploadDir = new File(taskFilePath);
-      if (!uploadDir.exists()) {
-        uploadDir.mkdirs();
-      }
-
-      List<String> failedFile = new ArrayList<>();
-      List<FileContent> successFile = new ArrayList<>();
-
-      // 上传文件
-      for (MultipartFile file : files) {
-        String originalFilename = file.getOriginalFilename();
-        FileContent fileContent = new FileContent();
-
-        try {
-
-          if (!isValidFileSize(file)) {
-            failedFile.add(originalFilename + " (文件过大)");
-            imageTaskResDTO.setSuccess(Boolean.FALSE);
-            continue;
-          }
-
-          // 保存文件
-          String fullLocalFilePath = taskFilePath + "/" + originalFilename;
-          Path filePath = Paths.get(fullLocalFilePath);
-          Files.write(filePath, file.getBytes());
-          fileContent.setFileName(originalFilename);
-          fileContent.setFilePath(fullLocalFilePath);
-          fileContent.setFileSize(file.getSize());
-          successFile.add(fileContent);
-        } catch (IOException e) {
-          failedFile.add(originalFilename + " (上传失败: " + e.getMessage() + ")");
-          imageTaskResDTO.setSuccess(Boolean.FALSE);
-        }
-      }
-      imageTaskResDTO.setFailedFile(failedFile);
-      imageTaskResDTO.setSuccessFile(successFile);
-    }catch (Exception e){
-      log.error("uploadFiles error", e);
-      imageTaskResDTO.setSuccess(Boolean.FALSE);
-      imageTaskResDTO.setFailedMsg(e.getMessage());
-    }
-    return imageTaskResDTO;
-  }
-
-  private boolean isValidFileType(MultipartFile file) {
-    String contentType = file.getContentType();
-    if (contentType == null) {
-      return false;
-    }
-
-    // 允许的MIME类型
-    return contentType.startsWith("image/") ||
-        contentType.equals("application/pdf") ||
-        contentType.equals("application/octet-stream"); // 某些PDF可能返回此类型
-  }
-
-  private boolean isValidFileSize(MultipartFile file) {
-    return file.getSize() <= 10 * 1024 * 1024; // 10MB限制
   }
 
 
@@ -346,85 +275,6 @@ public class ImageTaskApiService {
     return CommonResult.success("success");
   }
 
-  /**
-   * 异步解析PDF并更新文章信息
-   */
-  private void asyncParsePdfAndUpdate(ArticleDO articleDO) {
-    pdfParseService.parsePdfAsync(articleDO.getFilePath())
-        .thenAccept(parseResult -> {
-          try {
-            log.info("PDF解析结果: {}", parseResult);
-            if (parseResult.getSuccess() != null && parseResult.getSuccess()) {
-              // 解析成功，更新文章信息
-              updateArticleWithPdfResult(articleDO, parseResult);
-              log.info("PDF解析成功并更新文章信息: {}", articleDO.getFileName());
-            } else {
-              log.warn("PDF解析失败: {}, 错误信息: {}", articleDO.getFileName(), parseResult.getErrorMessage());
-            }
-          } catch (Exception e) {
-            log.error("更新文章信息失败: {}", articleDO.getFileName(), e);
-          }
-        })
-        .exceptionally(throwable -> {
-          log.error("PDF异步解析异常: {}", articleDO.getFileName(), throwable);
-          return null;
-        });
-  }
 
-  /**
-   * 根据PDF解析结果更新文章信息
-   */
-  private void updateArticleWithPdfResult(ArticleDO articleDO, PdfParseResultDTO parseResult) {
-    try {
-      ArticleDO updateArticle = new ArticleDO();
-      updateArticle.setArticleId(articleDO.getArticleId());
-      
-      // 更新文章标题
-      if (parseResult.getTitle() != null) {
-        updateArticle.setArticleTitle(parseResult.getTitle());
-      }
-      
-      // 更新杂志名称
-      if (parseResult.getJournal() != null) {
-        updateArticle.setArticleJournal(parseResult.getJournal());
-      }
-      
-      // 更新关键词列表
-      if (parseResult.getKeywords() != null && !parseResult.getKeywords().isEmpty()) {
-        updateArticle.setArticleKeywords(parseResult.getKeywords());
-      }
-      
-      // 更新作者姓名列表
-      if (parseResult.getAuthors() != null && !parseResult.getAuthors().isEmpty()) {
-        updateArticle.setAuthorName(parseResult.getAuthors());
-        // 由于API没有返回作者单位信息，暂时设置为空列表
-        updateArticle.setAuthorInstitution(Lists.newArrayList());
-      }
-      
-      // 更新发表日期
-      if (parseResult.getPublicationDate() != null) {
-        try {
-          // 假设日期格式为 yyyy-MM-dd，需要转换为时间戳
-          java.time.LocalDate date = java.time.LocalDate.parse(parseResult.getPublicationDate());
-          updateArticle.setArticleDate(date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000);
-        } catch (Exception e) {
-          log.warn("解析发表日期失败: {}", parseResult.getPublicationDate());
-        }
-      }
-      
-      // 更新DOI
-      if (parseResult.getDoi() != null) {
-        updateArticle.setPmid(parseResult.getDoi()); // 暂时将DOI存储在PMID字段
-      }
-
-      // 执行更新
-      log.info("更新文章信息: {}", updateArticle);
-      articleService.update(updateArticle);
-      
-    } catch (Exception e) {
-      log.error("更新文章信息失败", e);
-      throw new RuntimeException("更新文章信息失败: " + e.getMessage());
-    }
-  }
 
 }

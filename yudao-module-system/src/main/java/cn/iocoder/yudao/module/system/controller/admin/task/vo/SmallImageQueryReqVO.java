@@ -11,25 +11,12 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class FileQueryReqVO extends PageParam {
-
-  @Schema(description = "创建人", example = "1")
-  private Long creatorId;
+public class SmallImageQueryReqVO extends PageParam {
 
   @Schema(description = "上传开始时间")
   private Long startTime;
 
   @Schema(description = "上传结束时间")
   private Long endTime;
-
-  @Schema(description = "杂志社")
-  private String articleJournal;
-
-  @Schema(description = "关键字")
-  private String articleKeywords;
-
-  @Schema(description = "id")
-  private Long id;
-
 
 }

@@ -26,7 +26,7 @@ public class ArticleDO extends BaseDO {
    * article_id
    */
   @TableId
-  private Long articleId;
+  private Long id;
 
   /**
    * 任务id
@@ -117,5 +117,7 @@ public class ArticleDO extends BaseDO {
    * 状态(1正常,0禁用)
    */
   private Integer status;
+
+  private Long articleId;
 
 }
