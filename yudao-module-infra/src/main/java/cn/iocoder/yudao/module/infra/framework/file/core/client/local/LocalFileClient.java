@@ -42,7 +42,70 @@ public class LocalFileClient extends AbstractFileClient<LocalFileClientConfig> {
     }
 
     private String getFilePath(String path) {
-        return config.getBasePath() + File.separator + path;
+        // 从path中提取taskId，假设path格式为: taskId/filename 或者 /taskId/filename
+        String taskId = extractTaskIdFromPath(path);
+        
+        // 构建项目根目录下的task-file/{taskId}路径
+        String projectRoot = System.getProperty("user.dir");
+        String taskFileDir = projectRoot + File.separator + "task-file" + File.separator + taskId;
+        
+        // 确保目录存在
+        File dir = new File(taskFileDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        
+        // 获取文件名部分（去掉taskId前缀）
+        String fileName = getFileNameFromPath(path);
+        
+        return taskFileDir + File.separator + fileName;
+    }
+    
+    /**
+     * 从路径中提取taskId
+     * 支持格式: taskId/filename 或 /taskId/filename
+     */
+    private String extractTaskIdFromPath(String path) {
+        if (path == null || path.isEmpty()) {
+            return "default";
+        }
+        
+        // 移除开头的斜杠
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        
+        // 查找第一个斜杠的位置
+        int slashIndex = path.indexOf('/');
+        if (slashIndex > 0) {
+            return path.substring(0, slashIndex);
+        }
+        
+        // 如果没有斜杠，可能整个path就是taskId，或者使用默认值
+        return "default";
+    }
+    
+    /**
+     * 从路径中获取文件名部分
+     */
+    private String getFileNameFromPath(String path) {
+        if (path == null || path.isEmpty()) {
+            return "unknown_file";
+        }
+        
+        // 移除开头的斜杠
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        
+        // 查找第一个斜杠的位置
+        int slashIndex = path.indexOf('/');
+        if (slashIndex > 0 && slashIndex < path.length() - 1) {
+            return path.substring(slashIndex + 1);
+        }
+        
+        // 如果没有斜杠，整个path就是文件名
+        return path;
     }
 
 }
