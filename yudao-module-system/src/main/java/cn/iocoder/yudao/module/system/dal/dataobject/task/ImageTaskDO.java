@@ -83,11 +83,8 @@ public class ImageTaskDO extends BaseDO {
    */
   private Integer similarImages;
 
-
-  private String firstImage;
-
-  private String firstPdf;
-
   private String fileType;
+
+  private String taskNo;
 
 }

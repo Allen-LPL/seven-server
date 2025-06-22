@@ -10,7 +10,7 @@ public class ImageTaskCreateResDTO {
 
   private List<String> failedFile;
 
-  private List<String> successFile;
+  private List<FileContent> successFile;
 
   private String failedMsg;
 

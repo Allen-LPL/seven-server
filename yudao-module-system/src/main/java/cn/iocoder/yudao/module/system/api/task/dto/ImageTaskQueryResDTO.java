@@ -124,4 +124,8 @@ public class ImageTaskQueryResDTO {
 
   private String role;
 
+  private List<String> fileUrlList;
+
+  private String taskNo;
+
 }

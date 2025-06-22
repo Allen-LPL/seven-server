@@ -1,10 +1,14 @@
 package cn.iocoder.yudao.module.system.api.task;
 
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
+import cn.iocoder.yudao.framework.common.util.date.LocalDateTimeUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
+import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskAllocateReqVO;
@@ -27,6 +31,7 @@ import cn.iocoder.yudao.module.system.service.task.PdfParseService;
 import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import io.micrometer.core.instrument.util.TimeUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -117,13 +122,16 @@ public class ImageTaskApiService {
       // 补充论文标题和杂志社
       List<String> articleTitleList = Lists.newArrayList();
       List<String> articleJournalList = Lists.newArrayList();
+      List<String> fileUrlList = Lists.newArrayList();
       if (queryResDTO.getFileType().equals("pdf")){
         List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
         for (ArticleDO articleDO : articleDOList) {
           articleTitleList.add(articleDO.getArticleTitle());
           articleJournalList.add(articleDO.getArticleJournal());
+          fileUrlList.add(articleDO.getFilePath());
         }
       }
+      queryResDTO.setFileUrlList(fileUrlList);
       queryResDTO.setArticleTitleList(articleTitleList);
       queryResDTO.setArticleJournalList(articleJournalList);
     }
@@ -169,24 +177,23 @@ public class ImageTaskApiService {
     }
 
     // 更新任务
-    if ("image".equalsIgnoreCase(reqVO.getFileType())){
-      ImageTaskDO updateTask = new ImageTaskDO();
-      updateTask.setId(imageTaskDO.getId());
-      updateTask.setFirstImage(imageTaskResDTO.getSuccessFile().get(0));
-      imageTaskService.update(updateTask);
-    }
+    List<FileContent> fileList = imageTaskResDTO.getSuccessFile();
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(imageTaskDO.getId());
+    updateTask.setTotalImages(fileList.size());
+    updateTask.setTaskNo("RW"+ LocalDateTimeUtil.format(LocalDateTime.now(), DatePattern.PURE_DATE_PATTERN)
+        + imageTaskDO.getId());
+    imageTaskService.update(updateTask);
 
     // 创建文件并异步解析PDF
-    List<String> fileList = imageTaskResDTO.getSuccessFile();
     List<ArticleDO> articleDOList = Lists.newArrayList();
     
-    for (String fullFilePath : fileList) {
-      String fileName = fullFilePath.substring(fullFilePath.lastIndexOf("/"));
+    for (FileContent fileContent : fileList) {
       ArticleDO articleDO = new ArticleDO();
       articleDO.setTaskId(imageTaskDO.getId());
-      articleDO.setFileName(fileName);
-      articleDO.setFilePath(fullFilePath);
-      articleDO.setFileSize(0L);
+      articleDO.setFileName(fileContent.getFileName());
+      articleDO.setFilePath(fileContent.getFilePath());
+      articleDO.setFileSize(fileContent.getFileSize());
       articleDO.setFileType(reqVO.getFileType());
 
       // 设置基本信息
@@ -242,19 +249,14 @@ public class ImageTaskApiService {
       }
 
       List<String> failedFile = new ArrayList<>();
-      List<String> successFile = new ArrayList<>();
+      List<FileContent> successFile = new ArrayList<>();
 
       // 上传文件
       for (MultipartFile file : files) {
         String originalFilename = file.getOriginalFilename();
+        FileContent fileContent = new FileContent();
 
         try {
-          // 验证文件
-//          if (!isValidFileType(file)) {
-//            failedFile.add(originalFilename + " (无效文件类型)");
-//            imageTaskResDTO.setSuccess(Boolean.FALSE);
-//            continue;
-//          }
 
           if (!isValidFileSize(file)) {
             failedFile.add(originalFilename + " (文件过大)");
@@ -266,8 +268,10 @@ public class ImageTaskApiService {
           String fullLocalFilePath = taskFilePath + "/" + originalFilename;
           Path filePath = Paths.get(fullLocalFilePath);
           Files.write(filePath, file.getBytes());
-
-          successFile.add(fullLocalFilePath);
+          fileContent.setFileName(originalFilename);
+          fileContent.setFilePath(fullLocalFilePath);
+          fileContent.setFileSize(file.getSize());
+          successFile.add(fileContent);
         } catch (IOException e) {
           failedFile.add(originalFilename + " (上传失败: " + e.getMessage() + ")");
           imageTaskResDTO.setSuccess(Boolean.FALSE);

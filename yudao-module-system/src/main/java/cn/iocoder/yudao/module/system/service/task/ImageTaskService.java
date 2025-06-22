@@ -29,8 +29,8 @@ public class ImageTaskService {
 
   public Integer update(ImageTaskDO imageTaskDO) {
     UpdateWrapper<ImageTaskDO> updateWrapper = new UpdateWrapper<>();
-    if (StringUtils.isNotBlank(imageTaskDO.getFirstImage())){
-      updateWrapper.set("first_image", imageTaskDO.getFirstImage());
+    if (StringUtils.isNotBlank(imageTaskDO.getTaskNo())){
+      updateWrapper.set("task_no", imageTaskDO.getTaskNo());
     }
     if (Objects.nonNull(imageTaskDO.getAdminId())){
       updateWrapper.set("admin_id", imageTaskDO.getAdminId());
@@ -43,6 +43,9 @@ public class ImageTaskService {
     }
     if (Objects.nonNull(imageTaskDO.getTaskStatus())){
       updateWrapper.set("task_status", imageTaskDO.getTaskStatus());
+    }
+    if (Objects.nonNull(imageTaskDO.getTotalImages())){
+      updateWrapper.set("total_images", imageTaskDO.getTotalImages());
     }
     updateWrapper.set("update_time", LocalDateTime.now());
     updateWrapper.eq("id", imageTaskDO.getId());
