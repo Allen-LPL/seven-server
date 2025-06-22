@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.system.dal.dataobject.task;
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class ArticleDO extends BaseDO {
   /**
    * article_id
    */
+  @TableId
   private Long articleId;
 
   /**

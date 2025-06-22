@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                         .requestMatchers(adminSeverContextPath + "/**").permitAll();
                 // 文件读取
                 registry.requestMatchers(buildAdminApi("/infra/file/*/get/**")).permitAll();
+                registry.requestMatchers(buildAdminApi("/task-file/*/**")).permitAll();
             }
 
         };

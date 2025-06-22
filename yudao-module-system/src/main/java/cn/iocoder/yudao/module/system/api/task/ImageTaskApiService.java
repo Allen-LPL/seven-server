@@ -69,7 +69,7 @@ public class ImageTaskApiService {
   private PdfParseService pdfParseService;
 
 
-  private static final String UPLOAD_PATH = "./task/%s";
+  private static final String UPLOAD_PATH = "./task-file/%s";
 
   public PageResult<ImageTaskQueryResDTO> query(ImageTaskQueryReqVO imageTaskQueryReqVO){
     PageResult<ImageTaskDO> imageTaskDOPageResult = imageTaskService.pageQuery(imageTaskQueryReqVO);
