@@ -28,4 +28,8 @@ public class ArticleService {
     return articleMapper.selectList(queryWrapper);
   }
 
+  public Integer update(ArticleDO articleDO){
+    return articleMapper.updateById(articleDO);
+  }
+
 }

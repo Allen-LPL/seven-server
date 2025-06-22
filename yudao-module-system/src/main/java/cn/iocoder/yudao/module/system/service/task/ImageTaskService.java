@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImageTaskMapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+
+import java.time.LocalDateTime;
 import java.util.Objects;
 import javax.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +41,10 @@ public class ImageTaskService {
     if (Objects.nonNull(imageTaskDO.getAdminTime())){
       updateWrapper.set("admin_time", imageTaskDO.getAdminTime());
     }
+    if (Objects.nonNull(imageTaskDO.getTaskStatus())){
+      updateWrapper.set("task_status", imageTaskDO.getTaskStatus());
+    }
+    updateWrapper.set("update_time", LocalDateTime.now());
     updateWrapper.eq("id", imageTaskDO.getId());
     return imageTaskMapper.update(updateWrapper);
   }

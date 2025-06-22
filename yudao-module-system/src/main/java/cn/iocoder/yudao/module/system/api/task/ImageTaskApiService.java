@@ -23,6 +23,8 @@ import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
+import cn.iocoder.yudao.module.system.service.task.PdfParseService;
+import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import java.io.File;
@@ -62,6 +64,9 @@ public class ImageTaskApiService {
 
   @Resource
   private PermissionService permissionService;
+
+  @Resource
+  private PdfParseService pdfParseService;
 
 
   private static final String UPLOAD_PATH = "./task/%s";
@@ -164,14 +169,17 @@ public class ImageTaskApiService {
     }
 
     // 更新任务
-    ImageTaskDO updateTask = new ImageTaskDO();
-    updateTask.setId(imageTaskDO.getId());
-    updateTask.setFirstImage(imageTaskResDTO.getSuccessFile().get(0));
-    imageTaskService.update(updateTask);
+    if ("image".equalsIgnoreCase(reqVO.getFileType())){
+      ImageTaskDO updateTask = new ImageTaskDO();
+      updateTask.setId(imageTaskDO.getId());
+      updateTask.setFirstImage(imageTaskResDTO.getSuccessFile().get(0));
+      imageTaskService.update(updateTask);
+    }
 
-    // 创建文件
+    // 创建文件并异步解析PDF
     List<String> fileList = imageTaskResDTO.getSuccessFile();
     List<ArticleDO> articleDOList = Lists.newArrayList();
+    
     for (String fullFilePath : fileList) {
       String fileName = fullFilePath.substring(fullFilePath.lastIndexOf("/"));
       ArticleDO articleDO = new ArticleDO();
@@ -181,20 +189,25 @@ public class ImageTaskApiService {
       articleDO.setFileSize(0L);
       articleDO.setFileType(reqVO.getFileType());
 
-      // todo :需要提取
+      // 设置基本信息
       articleDO.setArticleDate(System.currentTimeMillis());
-      articleDO.setArticleJournal("aaa");
-      articleDO.setArticleTitle("aaa");
       if ("pdf".equalsIgnoreCase(reqVO.getFileType())){
         articleDO.setIsImage(0);
-      }else if ("image".equalsIgnoreCase(reqVO.getFileType())){
+      } else if ("image".equalsIgnoreCase(reqVO.getFileType())){
         articleDO.setIsImage(1);
       }
-      articleDO.setArticleKeywords(JSONObject.toJSONString(Lists.newArrayList("aa","bb")));
-      articleDO.setPmid("pmid");
-      articleDO.setAuthorInstitution("cccc");
-      articleDO.setAuthorName("aaaa");
-      articleDO.setMedicalSpecialty("medical specialty");
+
+      // 初始化为空列表，等待PDF解析完成后更新
+      articleDO.setArticleKeywords(Lists.newArrayList());
+      articleDO.setAuthorName(Lists.newArrayList());
+      articleDO.setAuthorInstitution(Lists.newArrayList());
+      
+      // 设置默认值
+      articleDO.setArticleJournal("");
+      articleDO.setArticleTitle("");
+      articleDO.setPmid("");
+      articleDO.setMedicalSpecialty("");
+      
       articleDOList.add(articleDO);
     }
     Boolean success = articleService.batchCreate(articleDOList);
@@ -202,13 +215,18 @@ public class ImageTaskApiService {
       throw new RuntimeException("任务入库失败");
     }
 
-    // todo 异步调用算法接口  算法检测
-    // todo 算法检测完后，更新任务状态
-    Long id = imageTaskDO.getId();
+    // 对PDF文件进行异步解析
+    if ("pdf".equalsIgnoreCase(reqVO.getFileType())) {
+      for (ArticleDO articleDO : articleDOList) {
+        asyncParsePdfAndUpdate(articleDO);
+      }
+    }
+
+    // 更新任务状态为算法检测中
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();
-    updateImageTaskStatus.setId(id);
+    updateImageTaskStatus.setId(imageTaskDO.getId());
     updateImageTaskStatus.setTaskStatus(TaskStatusEnum.ALGO_DETECT.getCode());
-    imageTaskService.update(updateTask);
+    imageTaskService.update(updateImageTaskStatus);
 
     return imageTaskResDTO;
   }
@@ -322,6 +340,87 @@ public class ImageTaskApiService {
       return CommonResult.error(500, "任务分配失败，请联系管理员");
     }
     return CommonResult.success("success");
+  }
+
+  /**
+   * 异步解析PDF并更新文章信息
+   */
+  private void asyncParsePdfAndUpdate(ArticleDO articleDO) {
+    pdfParseService.parsePdfAsync(articleDO.getFilePath())
+        .thenAccept(parseResult -> {
+          try {
+            log.info("PDF解析结果: {}", parseResult);
+            if (parseResult.getSuccess() != null && parseResult.getSuccess()) {
+              // 解析成功，更新文章信息
+              updateArticleWithPdfResult(articleDO, parseResult);
+              log.info("PDF解析成功并更新文章信息: {}", articleDO.getFileName());
+            } else {
+              log.warn("PDF解析失败: {}, 错误信息: {}", articleDO.getFileName(), parseResult.getErrorMessage());
+            }
+          } catch (Exception e) {
+            log.error("更新文章信息失败: {}", articleDO.getFileName(), e);
+          }
+        })
+        .exceptionally(throwable -> {
+          log.error("PDF异步解析异常: {}", articleDO.getFileName(), throwable);
+          return null;
+        });
+  }
+
+  /**
+   * 根据PDF解析结果更新文章信息
+   */
+  private void updateArticleWithPdfResult(ArticleDO articleDO, PdfParseResultDTO parseResult) {
+    try {
+      ArticleDO updateArticle = new ArticleDO();
+      updateArticle.setArticleId(articleDO.getArticleId());
+      
+      // 更新文章标题
+      if (parseResult.getTitle() != null) {
+        updateArticle.setArticleTitle(parseResult.getTitle());
+      }
+      
+      // 更新杂志名称
+      if (parseResult.getJournal() != null) {
+        updateArticle.setArticleJournal(parseResult.getJournal());
+      }
+      
+      // 更新关键词列表
+      if (parseResult.getKeywords() != null && !parseResult.getKeywords().isEmpty()) {
+        updateArticle.setArticleKeywords(parseResult.getKeywords());
+      }
+      
+      // 更新作者姓名列表
+      if (parseResult.getAuthors() != null && !parseResult.getAuthors().isEmpty()) {
+        updateArticle.setAuthorName(parseResult.getAuthors());
+        // 由于API没有返回作者单位信息，暂时设置为空列表
+        updateArticle.setAuthorInstitution(Lists.newArrayList());
+      }
+      
+      // 更新发表日期
+      if (parseResult.getPublicationDate() != null) {
+        try {
+          // 假设日期格式为 yyyy-MM-dd，需要转换为时间戳
+          java.time.LocalDate date = java.time.LocalDate.parse(parseResult.getPublicationDate());
+          updateArticle.setArticleDate(date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000);
+        } catch (Exception e) {
+          log.warn("解析发表日期失败: {}", parseResult.getPublicationDate());
+        }
+      }
+      
+      // 更新DOI
+      if (parseResult.getDoi() != null) {
+        updateArticle.setPmid(parseResult.getDoi()); // 暂时将DOI存储在PMID字段
+      }
+
+      // 执行更新
+      log.info("更新文章信息: {}", updateArticle);
+      articleService.update(updateArticle);
+      
+    } catch (Exception e) {
+      log.error("更新文章信息失败", e);
+      throw new RuntimeException("更新文章信息失败: " + e.getMessage());
+    }
   }
 
 }

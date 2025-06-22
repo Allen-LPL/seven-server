@@ -2,8 +2,11 @@ package cn.iocoder.yudao.module.system.dal.dataobject.task;
 
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -68,7 +71,8 @@ public class ArticleDO extends BaseDO {
   /**
    * 文章关键词
    */
-  private String articleKeywords;
+  @TableField(typeHandler = JacksonTypeHandler.class)
+  private List<String> articleKeywords;
 
   /**
    * 杂志名称
@@ -78,12 +82,14 @@ public class ArticleDO extends BaseDO {
   /**
    * 作者姓名
    */
-  private String authorName;
+  @TableField(typeHandler = JacksonTypeHandler.class)
+  private List<String> authorName;
 
   /**
    * 作者单位
    */
-  private String authorInstitution;
+  @TableField(typeHandler = JacksonTypeHandler.class)
+  private List<String> authorInstitution;
 
   /**
    * 发表时间
