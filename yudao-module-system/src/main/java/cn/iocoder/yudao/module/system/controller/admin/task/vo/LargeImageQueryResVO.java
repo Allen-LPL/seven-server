@@ -1,24 +1,11 @@
-package cn.iocoder.yudao.module.system.dal.dataobject.task;
+package cn.iocoder.yudao.module.system.controller.admin.task.vo;
 
-import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
-import com.baomidou.mybatisplus.annotation.TableField;
+
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 
-
-@TableName(value = "iisd_large_image", autoResultMap = true)
 @Data
-@EqualsAndHashCode(callSuper = true)
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class LargeImageDO extends BaseDO {
+public class LargeImageQueryResVO {
 
   @TableId
   private Long id;
@@ -83,5 +70,6 @@ public class LargeImageDO extends BaseDO {
    */
   private Integer status;
 
+  private Long smallImageSum;
 
 }
