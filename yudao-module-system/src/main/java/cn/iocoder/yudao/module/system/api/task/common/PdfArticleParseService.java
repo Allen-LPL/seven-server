@@ -52,6 +52,7 @@ public class PdfArticleParseService {
     try {
       ArticleDO updateArticle = new ArticleDO();
       updateArticle.setArticleId(articleDO.getArticleId());
+      updateArticle.setId(articleDO.getId());
 
       // 更新文章标题
       if (parseResult.getTitle() != null) {

@@ -8,6 +8,7 @@ import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
+import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
@@ -66,6 +67,9 @@ public class ImageTaskApiService {
 
   @Resource
   private FileUploadService fileUploadService;
+
+  @Resource
+  private ImageProcessService imageProcessService;
 
 
   private static final String UPLOAD_PATH = "./task-file/%s";
@@ -222,6 +226,9 @@ public class ImageTaskApiService {
         pdfArticleParseService.asyncParsePdfAndUpdate(articleDO);
       }
     }
+
+    // todo : 异步算法检测
+    //imageProcessService.process(imageTaskDO.getId());
 
     // 更新任务状态为算法检测中
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();

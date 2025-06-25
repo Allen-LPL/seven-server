@@ -51,4 +51,8 @@ public class ArticleService {
     return articleMapper.deleteById(id);
   }
 
+  public List<ArticleDO> batchQueryByIds(List<Long> ids){
+    return articleMapper.selectByIds(ids);
+  }
+
 }

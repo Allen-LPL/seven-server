@@ -4,11 +4,14 @@ package cn.iocoder.yudao.module.system.api.task;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
+import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
+import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
+import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageRequest;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.FileCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.FileQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.FileQueryResVO;
@@ -16,6 +19,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +49,9 @@ public class ArticleApiService {
 
   @Resource
   private SmallImageService smallImageService;
+
+  @Resource
+  private ImageProcessService imageProcessService;
 
   public CommonResult<PageResult<FileQueryResVO>> pageQuery(FileQueryReqVO fileQueryReqVO) {
     PageResult<ArticleDO> pageResult = articleService.queryPage(fileQueryReqVO);
@@ -133,6 +140,7 @@ public class ArticleApiService {
     }
 
     // todo 异步调用算法切割图片&提取向量特征
+
 
     return CommonResult.success("success");
   }
