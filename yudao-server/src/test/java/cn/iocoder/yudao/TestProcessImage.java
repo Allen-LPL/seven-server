@@ -34,6 +34,7 @@ public class TestProcessImage {
     JSONObject params = new JSONObject();
     params.put("smallImage","/Users/fangliu/Code/image_similar/seven-server/task-file/49/largeImage/158_1_1.jpg");
     params.put("duplicateSmallImage","/Users/fangliu/Code/image_similar/seven-server/task-file/49/smallImage/158_1_1_1.jpg");
+    params.put("comparePath","/Users/fangliu/Code/image_similar/seven-server/task-file/49/comparePath/");
     String result = HttpUtils.post(url,null, params.toJSONString());
     log.info("compare image result: {}", result);
   }

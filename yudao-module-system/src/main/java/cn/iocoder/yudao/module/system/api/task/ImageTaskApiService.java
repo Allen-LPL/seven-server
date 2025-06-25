@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
@@ -75,21 +76,30 @@ public class ImageTaskApiService {
   private static final String UPLOAD_PATH = "./task-file/%s";
 
   public PageResult<ImageTaskQueryResDTO> query(ImageTaskQueryReqVO imageTaskQueryReqVO){
+
+    // 当前用户角色
+    AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
+    if (Objects.isNull(adminUserDO)) {
+      throw new RuntimeException("用户未登录");
+    }
+    List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
+    if (CollectionUtils.isAnyEmpty(userRoles)){
+      throw new RuntimeException("用户未分配角色");
+    }
+    RoleDO roleDo = userRoles.get(0);
+
+    // 如果是专家 只能看到分配给他的
+    if (roleDo.getCode().equals("Expert_admin")){
+      imageTaskQueryReqVO.setReviewId(WebFrameworkUtils.getLoginUserId());
+    }else if (roleDo.getCode().equals("Common")){
+      imageTaskQueryReqVO.setCreatorId(WebFrameworkUtils.getLoginUserId());
+    }
+
     PageResult<ImageTaskDO> imageTaskDOPageResult = imageTaskService.pageQuery(imageTaskQueryReqVO);
     PageResult<ImageTaskQueryResDTO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImageTaskQueryResDTO.class);
     List<ImageTaskQueryResDTO> queryResDTOList = pageResult.getList();
     for (ImageTaskQueryResDTO queryResDTO : queryResDTOList) {
 
-      // 当前用户角色
-      AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
-      if (Objects.isNull(adminUserDO)) {
-        throw new RuntimeException("用户未登录");
-      }
-      List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
-      if (CollectionUtils.isAnyEmpty(userRoles)){
-        throw new RuntimeException("用户未分配角色");
-      }
-      RoleDO roleDo = userRoles.get(0);
       queryResDTO.setRole(roleDo.getCode());
 
       // 补充创建用户信息
