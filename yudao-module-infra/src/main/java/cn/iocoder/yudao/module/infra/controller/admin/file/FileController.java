@@ -85,7 +85,7 @@ public class FileController {
                                HttpServletResponse response,
                                @PathVariable("configId") Long configId) throws Exception {
         // 获取请求的路径
-        String path = StrUtil.subAfter(request.getRequestURI(), "/get/", false);
+        String path = StrUtil.subAfter(request.getRequestURI(), "/get/task-file/", false);
         if (StrUtil.isEmpty(path)) {
             throw new IllegalArgumentException("结尾的 path 路径必须传递");
         }

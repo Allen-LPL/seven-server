@@ -123,15 +123,21 @@ public class ImageTaskApiService {
       List<String> articleTitleList = Lists.newArrayList();
       List<String> articleJournalList = Lists.newArrayList();
       List<String> fileUrlList = Lists.newArrayList();
-      if (queryResDTO.getFileType().equals("pdf")){
-        List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
-        for (ArticleDO articleDO : articleDOList) {
+      List<String> imageList = Lists.newArrayList();
+      
+      List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
+      for (ArticleDO articleDO : articleDOList) {
+        if (queryResDTO.getFileType().equals("pdf")){
           articleTitleList.add(articleDO.getArticleTitle());
           articleJournalList.add(articleDO.getArticleJournal());
           fileUrlList.add(articleDO.getFilePath());
+        } else {
+          imageList.add(articleDO.getFilePath());
         }
       }
+      
       queryResDTO.setFileUrlList(fileUrlList);
+      queryResDTO.setFirstImage(imageList);
       queryResDTO.setArticleTitleList(articleTitleList);
       queryResDTO.setArticleJournalList(articleJournalList);
     }
