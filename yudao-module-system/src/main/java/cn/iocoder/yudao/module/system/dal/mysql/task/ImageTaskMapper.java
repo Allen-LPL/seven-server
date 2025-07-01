@@ -18,6 +18,8 @@ public interface ImageTaskMapper extends BaseMapperX<ImageTaskDO> {
     return selectPage(reqVO, new LambdaQueryWrapperX<ImageTaskDO>()
         .eqIfPresent(ImageTaskDO::getTaskType, reqVO.getTaskType())
         .eqIfPresent(ImageTaskDO::getTaskId, reqVO.getTaskId())
+        .eqIfPresent(ImageTaskDO::getCreatorId,reqVO.getCreatorId())
+        .eqIfPresent(ImageTaskDO::getReviewerId,reqVO.getReviewId())
         .betweenIfPresent(ImageTaskDO::getCreateTime, reqVO.getStartTime(), reqVO.getEndTime())
         .orderByDesc(ImageTaskDO::getCreateTime,ImageTaskDO::getUpdateTime));
   }
