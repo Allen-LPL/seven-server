@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,16 +76,28 @@ public class DeptController {
     }
 
     @GetMapping("/child-list")
-    @Operation(summary = "获取指定部门的直接子部门列表", description = "只获取下一层子部门，主要用于前端的下拉选项")
+    @Operation(summary = "获取指定部门的直接子部门列表", description = "只获取下一层子部门，主要用于前端的下拉选项 支持分页")
     @Parameter(name = "id", description = "父部门编号", required = true, example = "100")
     @PermitAll
-    public CommonResult<List<DeptSimpleRespVO>> getChildDeptList(@RequestParam("id") Long id) {
+    public CommonResult<List<DeptSimpleRespVO>> getChildDeptList(
+            @RequestParam("id") Long id,
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        // 默认分页参数：第一页，最多 1000 条
+        int page = pageNo == null ? 1 : pageNo;
+        int size = pageSize == null ? 1000 : pageSize;
+
         List<DeptDO> list = deptService.getDirectChildDeptList(id);
-        // 只返回启用状态的部门
+        // 仅启用状态
         List<DeptDO> enabledList = list.stream()
                 .filter(dept -> CommonStatusEnum.ENABLE.getStatus().equals(dept.getStatus()))
                 .collect(Collectors.toList());
-        return success(BeanUtils.toBean(enabledList, DeptSimpleRespVO.class));
+
+        int fromIndex = Math.max(0, (page - 1) * size);
+        int toIndex = Math.min(enabledList.size(), fromIndex + size);
+        List<DeptDO> paged = fromIndex >= enabledList.size() ? Collections.emptyList() : enabledList.subList(fromIndex, toIndex);
+
+        return success(BeanUtils.toBean(paged, DeptSimpleRespVO.class));
     }
 
     @GetMapping("/get")
