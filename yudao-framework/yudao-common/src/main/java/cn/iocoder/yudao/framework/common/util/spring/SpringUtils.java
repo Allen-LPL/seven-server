@@ -21,4 +21,14 @@ public class SpringUtils extends SpringUtil {
         return Objects.equals("prod", activeProfile);
     }
 
+    public static boolean isLocal() {
+        String activeProfile = getActiveProfile();
+        return Objects.equals("local", activeProfile);
+    }
+
+    public static boolean isDev() {
+        String activeProfile = getActiveProfile();
+        return Objects.equals("dev", activeProfile);
+    }
+
 }

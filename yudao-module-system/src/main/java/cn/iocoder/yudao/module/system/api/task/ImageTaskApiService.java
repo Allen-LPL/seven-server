@@ -13,16 +13,15 @@ import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskAllocateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskCreateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
-import cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
@@ -175,7 +174,7 @@ public class ImageTaskApiService {
     }
 
     // 任务ID
-    String filePath = String.format(UPLOAD_PATH, String.valueOf(imageTaskDO.getId()));
+    String filePath = String.format(UPLOAD_PATH, imageTaskDO.getId());
 
     // 上传文件
     MultipartFile[] files = reqVO.getFiles();
@@ -231,14 +230,14 @@ public class ImageTaskApiService {
     }
 
     // 对PDF文件进行异步解析
-    if ("pdf".equalsIgnoreCase(reqVO.getFileType())) {
-      for (ArticleDO articleDO : articleDOList) {
-        pdfArticleParseService.asyncParsePdfAndUpdate(articleDO);
-      }
-    }
+//    if ("pdf".equalsIgnoreCase(reqVO.getFileType())) {
+//      for (ArticleDO articleDO : articleDOList) {
+//        pdfArticleParseService.asyncParsePdfAndUpdate(articleDO);
+//      }
+//    }
 
     // todo : 异步算法检测
-    //imageProcessService.process(imageTaskDO.getId());
+    imageProcessService.processAsync(imageTaskDO.getId());
 
     // 更新任务状态为算法检测中
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();

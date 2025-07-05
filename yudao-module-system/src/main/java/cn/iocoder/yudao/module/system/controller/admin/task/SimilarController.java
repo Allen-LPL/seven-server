@@ -6,9 +6,13 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.api.task.ImageTaskApiService;
+import cn.iocoder.yudao.module.system.api.task.ImgSimilarApiService;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.TaskStrategyConfig;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateResVO;
@@ -32,39 +36,20 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "管理后台 - 任务管理")
+@Tag(name = "管理后台 - 任务管理-相似图片比对")
 @RestController
-@RequestMapping("/task/manager")
+@RequestMapping("/task/similar")
 @Slf4j
-public class TaskController {
+public class SimilarController {
 
   @Resource
-  private ImageTaskApiService imageTaskApiService;
+  private ImgSimilarApiService imgSimilarApiService;
 
-  @RequestMapping(method = RequestMethod.POST, value = "/create" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public CommonResult<ImageTaskCreateResVO> create( @Parameter(description = "上传文件", content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE)) @RequestPart("files") MultipartFile[] files,
-      @RequestParam("taskType") Integer taskType, @RequestParam("fileType") String fileType,
-      @RequestParam(value = "taskStrategyConfig",required = false) String taskStrategyConfig) {
-    try {
-      ImageTaskCreateReqVO reqVO = new ImageTaskCreateReqVO();
-      reqVO.setTaskType(taskType);
-      reqVO.setFiles(files);
-      reqVO.setFileType(fileType);
-      if (StringUtils.isNotBlank(taskStrategyConfig)) {
-        reqVO.setTaskStrategyConfig(JSONObject.parseObject(taskStrategyConfig, TaskStrategyConfig.class));
-      }
-      ImageTaskCreateResDTO imageTaskResDTO =  imageTaskApiService.createTask(reqVO);
-      return CommonResult.success(BeanUtils.toBean(imageTaskResDTO, ImageTaskCreateResVO.class));
-    }catch (Exception e) {
-      log.error("创建检测任务失败, ",e);
-      return CommonResult.error(new ErrorCode(500, e.getMessage()));
-    }
-  }
 
   @GetMapping("/query")
-  public CommonResult<PageResult<ImageTaskQueryResDTO>> create(ImageTaskQueryReqVO reqVO) {
+  public CommonResult<PageResult<ImgSimilarQueryResVO>> pageQuery(ImgSimilarityQueryReqVO reqVO) {
     try {
-      PageResult<ImageTaskQueryResDTO> pageResult =  imageTaskApiService.query(reqVO);
+      PageResult<ImgSimilarQueryResVO> pageResult =  imgSimilarApiService.query(reqVO);
       return CommonResult.success(pageResult);
     }catch (Exception e) {
       log.error("查询失败，",e);
@@ -72,22 +57,13 @@ public class TaskController {
     }
   }
 
-  @PostMapping("/allocate")
-  public CommonResult<String> allocate(@RequestBody ImageTaskAllocateReqVO allocateReqVO) {
-    try {
-      return imageTaskApiService.allocateTask(allocateReqVO);
-    }catch (Exception e) {
-      log.error("allocate error，",e);
-      return CommonResult.error(new ErrorCode(500, e.getMessage()));
-    }
-  }
 
   @PostMapping("/review")
-  public CommonResult<String> review(@RequestBody ImageTaskReviewReqVO reviewReqVO) {
+  public CommonResult<String> review(@RequestBody ImgSimilarityReviewReqVO reviewReqVO) {
     try {
-      return imageTaskApiService.reviewTask(reviewReqVO);
+      return imgSimilarApiService.reviewSimilar(reviewReqVO);
     }catch (Exception e) {
-      log.error("allocate error，",e);
+      log.error("review error，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }

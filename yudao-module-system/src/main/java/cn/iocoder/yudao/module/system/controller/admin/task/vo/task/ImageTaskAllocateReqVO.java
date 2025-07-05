@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.system.controller.admin.task.vo;
+package cn.iocoder.yudao.module.system.controller.admin.task.vo.task;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

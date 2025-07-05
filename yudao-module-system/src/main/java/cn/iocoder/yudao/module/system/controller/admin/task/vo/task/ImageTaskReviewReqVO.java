@@ -1,11 +1,7 @@
-package cn.iocoder.yudao.module.system.controller.admin.task.vo;
+package cn.iocoder.yudao.module.system.controller.admin.task.vo.task;
 
-import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
 
 
 @Schema(description = "管理后台 - 邮箱账号分页 Request VO")

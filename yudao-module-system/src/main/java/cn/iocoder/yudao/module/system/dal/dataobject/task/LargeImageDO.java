@@ -24,11 +24,6 @@ public class LargeImageDO extends BaseDO {
   private Long id;
 
   /**
-   * 大图ID
-   */
-  private Long largeImageId;
-
-  /**
    * 所属文件ID
    */
   private Long articleId;
@@ -61,7 +56,7 @@ public class LargeImageDO extends BaseDO {
   /**
    *  图像在文件中的页码/位置
    */
-  private Integer pageNumber;
+  private String pageNumber;
 
   /**
    *  提取方法
@@ -81,7 +76,7 @@ public class LargeImageDO extends BaseDO {
   /**
    *  状态(1正常,0禁用)
    */
-  private Integer status;
+  private Integer status = 1;
 
 
 }

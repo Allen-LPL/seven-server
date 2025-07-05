@@ -235,3 +235,8 @@ iot:
 # 插件配置
 pf4j:
   pluginsDir: ${user.home}/plugins # 插件目录
+
+
+miluvs:
+  host: 172.20.76.8
+  port: 19530

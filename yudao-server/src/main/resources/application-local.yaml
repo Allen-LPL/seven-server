@@ -277,3 +277,7 @@ justauth:
 pf4j:
 #  pluginsDir: /tmp/
   pluginsDir: ../plugins
+
+milvus:
+  host: 101.37.104.90
+  port: 19530

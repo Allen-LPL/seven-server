@@ -324,3 +324,6 @@ debug: false
 # 插件配置 TODO 芋艿：【IOT】需要处理下
 pf4j:
   pluginsDir: /Users/anhaohao/code/gitee/ruoyi-vue-pro/plugins # 插件目录
+
+
+# scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@api02:/data/yudao

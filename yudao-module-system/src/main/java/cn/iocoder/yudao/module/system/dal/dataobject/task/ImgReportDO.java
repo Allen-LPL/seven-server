@@ -10,35 +10,32 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-
-@TableName(value = "iisd_small_image", autoResultMap = true)
+@TableName(value = "iisd_img_report", autoResultMap = true)
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SmallImageDO extends BaseDO {
+public class ImgReportDO extends BaseDO {
 
   @TableId
   private Long id;
 
-  private Long imageId;
+  private Long taskId;
 
-  private Long largeImageId;
+  // 报告类型(1查询报告,2任务报告,3统计报告)
+  private Integer reportType;
 
-  private Long articleId;
+  private String reportName;
 
-  private String imageName;
-
-  private String imageType;
-
-  private String imageFormat;
-
-  private Long imageSize;
-
-  private String vectorPath;
-
-  private String imagePath;
+  private String reportPath;
 
   private Integer status;
+
+  private Long reviewerId;
+
+  private Long creatorId;
+
+  private LocalDateTime reviewTime;
+
 }

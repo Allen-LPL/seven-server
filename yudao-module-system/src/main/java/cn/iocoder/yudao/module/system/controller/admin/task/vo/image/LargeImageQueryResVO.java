@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.system.controller.admin.task.vo;
+package cn.iocoder.yudao.module.system.controller.admin.task.vo.image;
 
 
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -48,7 +48,7 @@ public class LargeImageQueryResVO {
   /**
    *  图像在文件中的页码/位置
    */
-  private Integer pageNumber;
+  private String pageNumber;
 
   /**
    *  提取方法

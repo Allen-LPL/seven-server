@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.ImageTaskQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
-import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImageTaskMapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 

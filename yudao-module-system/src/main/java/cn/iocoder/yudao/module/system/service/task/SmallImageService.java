@@ -1,14 +1,12 @@
 package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.SmallImageQueryReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.SmallImageQueryResVO;
-import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
-import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.task.SmallImageMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +28,14 @@ public class SmallImageService {
     return smallImageMapper.deleteByIds(ids);
   }
 
+  public List<SmallImageDO> queryByIds(Set<Long> ids){
+    return smallImageMapper.selectByIds(ids);
+  }
+
+  public SmallImageDO queryById(Long id){
+    return smallImageMapper.selectById(id);
+  }
+
   public Long querySumByLargeImageIds(List<Long> largeImageIds) {
     QueryWrapper<SmallImageDO> wrapper = new QueryWrapper<>();
     wrapper.in("large_image_id", largeImageIds);
@@ -49,6 +55,10 @@ public class SmallImageService {
     wrapper.eq("large_image_id", largeImageId);
     wrapper.eq("status", 1);
     return smallImageMapper.selectCount(wrapper);
+  }
+
+  public Boolean batchSave(List<SmallImageDO> smallImages) {
+    return smallImageMapper.insertBatch(smallImages);
   }
 
 }

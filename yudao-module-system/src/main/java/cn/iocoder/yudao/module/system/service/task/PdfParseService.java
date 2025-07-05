@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.system.service.task;
 
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -81,5 +83,87 @@ public class PdfParseService {
         result.setSuccess(false);
         result.setErrorMessage(errorMsg);
         return result;
+    }
+
+    public PdfParseResultDTO parsePdf(String filePath){
+        try {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                log.error("PDF文件不存在：{}", filePath);
+                return null;
+            }
+
+            // 构建请求
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new org.springframework.core.io.FileSystemResource(file));
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+            // 发送请求
+            ResponseEntity<PdfParseResultDTO> response = restTemplate.postForEntity(
+                PDF_PARSE_URL, requestEntity, PdfParseResultDTO.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                PdfParseResultDTO result = response.getBody();
+                log.info("parsePdf PDF解析成功：{}", filePath);
+                return result;
+            } else {
+                log.error("parsePdf PDF解析失败，HTTP状态码：{}， filePath : {}", response.getStatusCode(), filePath);
+                return null;
+            }
+
+        }catch (Exception e){
+            log.error("filePath: {}, parsePdf error", filePath, e);
+            return null;
+        }
+    }
+
+    public void transArticleToPdf(ArticleDO updateArticle, PdfParseResultDTO parseResult) {
+        // 更新文章标题
+        if (parseResult.getTitle() != null) {
+            updateArticle.setArticleTitle(parseResult.getTitle());
+        }
+
+        // 更新杂志名称
+        if (parseResult.getJournal() != null) {
+            updateArticle.setArticleJournal(parseResult.getJournal());
+        }
+
+        // 更新关键词列表
+        if (parseResult.getKeywords() != null && !parseResult.getKeywords().isEmpty()) {
+            updateArticle.setArticleKeywords(parseResult.getKeywords());
+        }
+
+        // 更新作者姓名列表
+        if (parseResult.getAuthors() != null && !parseResult.getAuthors().isEmpty()) {
+            updateArticle.setAuthorName(parseResult.getAuthors());
+            // 由于API没有返回作者单位信息，暂时设置为空列表
+            updateArticle.setAuthorInstitution(Lists.newArrayList());
+        }
+
+        // 更新发表日期
+        if (parseResult.getPublicationDate() != null) {
+            try {
+                // 假设日期格式为 yyyy-MM-dd，需要转换为时间戳
+                java.time.LocalDate date = java.time.LocalDate.parse(parseResult.getPublicationDate());
+                updateArticle.setArticleDate(date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000);
+            } catch (Exception e) {
+                log.warn("解析发表日期失败: {}", parseResult.getPublicationDate());
+            }
+        }else {
+            try {
+                updateArticle.setArticleDate(0L);
+            }catch (Exception e){
+                log.error("error: ",e);
+            }
+        }
+
+        // 更新DOI
+        if (parseResult.getDoi() != null) {
+            updateArticle.setPmid(parseResult.getDoi()); // 暂时将DOI存储在PMID字段
+        }
     }
 } 
