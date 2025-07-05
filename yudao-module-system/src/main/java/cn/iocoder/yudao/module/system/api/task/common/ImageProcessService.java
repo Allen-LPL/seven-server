@@ -55,6 +55,7 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -86,21 +87,18 @@ public class ImageProcessService {
   @Resource
   private MilvusRecallService milvusRecallService;
 
-  private static final String LARGE_PATH = "/Users/fangliu/Code/image_similar/seven-server/task-file/%s/largeImage/";
-  private static final String SMALL_PATH = "/Users/fangliu/Code/image_similar/seven-server/task-file/%s/smallImage/";
-  private static final String LARGE_PATH_DEV = "./task-file/%s/largeImage/";
-  private static final String SMALL_PATH_DEV = "./task-file/%s/smallImage/";
-
+  private static final String LARGE_PATH = "%s%s/largeImage/";
+  private static final String SMALL_PATH = "%s%s/smallImage/";
   private static final String local_prefix = "./task-file/";
-  private static final String local_prefix_replace = "/Users/fangliu/Code/image_similar/seven-server/task-file/";
 
-  private static final String DB_LARGE_PATH = "/Users/fangliu/Code/image_similar/seven-server/task-file/db/%s/largeImage/";
-  private static final String DB_SMALL_PATH = "/Users/fangliu/Code/image_similar/seven-server/task-file/db/%s/smallImage/";
-  private static final String DB_LARGE_PATH_DEV = "./task-file/db/%s/largeImage/";
-  private static final String DB_SMALL_PATH_DEV = "./task-file/db/%s/smallImage/";
+  private static final String DB_LARGE_PATH = "%sdb/%s/largeImage/";
+  private static final String DB_SMALL_PATH = "%sdb/%s/smallImage/";
 
 
-  private static final String url = "http://localhost:8086/process_articles";
+  private static final String url = "http://172.20.76.8:8086/process_articles";
+
+  @Value("${image.replace.prefix}")
+  private String replacePrefix;
 
   @Resource
   private Executor taskExecutor;
@@ -112,7 +110,7 @@ public class ImageProcessService {
   }
 
   public void process(Long taskId) {
-
+    log.info("start process async, taskId = {}", taskId);
     Long userId = WebFrameworkUtils.getLoginUserId();
     if (Objects.isNull(userId)) {
       userId = 1L;
@@ -121,11 +119,13 @@ public class ImageProcessService {
     // 1.pdf解析
     List<ArticleDO> articleDOList  = articleService.queryListByTaskId(taskId);
     for (ArticleDO articleDO : articleDOList) {
+      log.info("start process async, articleDO = {}", JSONObject.toJSONString(articleDO));
       PdfParseResultDTO pdfParseResultDTO = pdfParseService.parsePdf(articleDO.getFilePath());
       if (pdfParseResultDTO == null) {
         pdfParseResultDTO = new PdfParseResultDTO();
         pdfParseResultDTO.setPublicationDate(String.valueOf(System.currentTimeMillis()));
       }
+      log.info("end process async, pdfParseResultDTO = {}", JSONObject.toJSONString(pdfParseResultDTO));
       pdfParseService.transArticleToPdf(articleDO, pdfParseResultDTO);
     }
     articleService.updateBatch(articleDOList);
@@ -135,23 +135,15 @@ public class ImageProcessService {
     for (ArticleDO articleDO : articleDOList) {
       ProcessImageRequest imageRequest = new ProcessImageRequest();
       imageRequest.setArticleId(articleDO.getId());
-      if (SpringUtils.isLocal()){
-        imageRequest.setFilePath(articleDO.getFilePath().replace(local_prefix,local_prefix_replace));
-      }else {
-        imageRequest.setFilePath(articleDO.getFilePath());
-      }
+      imageRequest.setFilePath(articleDO.getFilePath().replace(local_prefix,replacePrefix));
       imageRequest.setFileType(articleDO.getFileType());
-      if (SpringUtils.isLocal()){
-        imageRequest.setLargePrefixPath(String.format(LARGE_PATH, taskId));
-        imageRequest.setSmallPrefixPath(String.format(SMALL_PATH, taskId));
-      }else {
-        imageRequest.setLargePrefixPath(String.format(LARGE_PATH_DEV, taskId));
-        imageRequest.setSmallPrefixPath(String.format(SMALL_PATH_DEV, taskId));
-      }
+      imageRequest.setLargePrefixPath(String.format(LARGE_PATH, replacePrefix, taskId));
+      imageRequest.setSmallPrefixPath(String.format(SMALL_PATH, replacePrefix, taskId));
       request.add(imageRequest);
     }
+    log.info("start call api, request = {}", JSONObject.toJSONString(request));
     String response = HttpUtils.post(url,null, JSONObject.toJSONString(request));
-    log.info(response);
+    log.info("end call api, response = {}", response);
     if (StringUtils.isBlank(response)){
       log.error("任务失败，无返回，{}",taskId); // todo 写库
       return;
@@ -207,7 +199,9 @@ public class ImageProcessService {
       // todo  每个模型都检索一次，或者选一个检索一次
       for(String modelName : vectorMap.keySet()) {
         if ("Resnet50".equals(modelName)) {
+          log.info("start vector recall: {}", vectorPath);
           List<Map<String,Object>> resultList = milvusRecallService.recall(vectorMap.get(modelName), modelName);
+          log.info("end vector resultList: {}", JSONObject.toJSONString(resultList));
           for (Map<String,Object> imageIdScoreMap : resultList) {
             ImgSimilarityDO imgSimilarityDO = new ImgSimilarityDO();
             imgSimilarityDO.setTaskId(taskId);
@@ -258,6 +252,8 @@ public class ImageProcessService {
         log.error("批量写入相似图片对失败");
       }
     }
+
+    log.info("end process async, taskId = {}", taskId);
   }
 
   private String getReportName(){
@@ -325,13 +321,8 @@ public class ImageProcessService {
     imageRequest.setArticleId(articleDO.getId());
     imageRequest.setFilePath(articleDO.getFilePath());
     imageRequest.setFileType(articleDO.getFileType());
-    if (SpringUtils.isLocal()){
-      imageRequest.setLargePrefixPath(String.format(DB_LARGE_PATH, articleDO.getId()));
-      imageRequest.setSmallPrefixPath(String.format(DB_SMALL_PATH, articleDO.getId()));
-    }else {
-      imageRequest.setLargePrefixPath(String.format(DB_LARGE_PATH_DEV, articleDO.getId()));
-      imageRequest.setSmallPrefixPath(String.format(DB_SMALL_PATH_DEV, articleDO.getId()));
-    }
+    imageRequest.setLargePrefixPath(String.format(DB_LARGE_PATH,replacePrefix, articleDO.getId()));
+    imageRequest.setSmallPrefixPath(String.format(DB_SMALL_PATH,replacePrefix, articleDO.getId()));
     request.add(imageRequest);
 
     String response = HttpUtils.post(url,null, JSONObject.toJSONString(request));
@@ -405,7 +396,7 @@ public class ImageProcessService {
   private LargeImageDO transLargeImageDO(LargeImage largeImage, Long articleId){
     LargeImageDO largeImageDO = new LargeImageDO();
     largeImageDO.setIsProcessed(1);
-    largeImageDO.setImagePath(largeImage.getPath());
+    largeImageDO.setImagePath(largeImage.getPath().replace(replacePrefix,local_prefix));
     largeImageDO.setImageFormat("jpg");
     largeImageDO.setArticleId(articleId);
     largeImageDO.setCaption(largeImage.getCaption());
@@ -418,7 +409,7 @@ public class ImageProcessService {
   }
 
   private SmallImageDO transSmallImageDO(SmallImage smallImage, Long articleId, Long largeImageId){
-    String path = smallImage.getPath();
+    String path = smallImage.getPath().replace(replacePrefix,local_prefix);
     String name = path.substring(path.lastIndexOf("/")+1);
     log.info("path={},name={}", path, name);
     String imageUrl = path + "/" + name + ".jpg";

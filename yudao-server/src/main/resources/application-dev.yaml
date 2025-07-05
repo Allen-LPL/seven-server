@@ -237,6 +237,10 @@ pf4j:
   pluginsDir: ${user.home}/plugins # 插件目录
 
 
-miluvs:
-  host: 172.20.76.8
+milvus:
+  host: 172.20.76.10
   port: 19530
+
+image:
+  replace:
+    prefix: /data/yudao/task-file/

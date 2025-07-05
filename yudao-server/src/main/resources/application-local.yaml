@@ -281,3 +281,7 @@ pf4j:
 milvus:
   host: 101.37.104.90
   port: 19530
+
+image:
+  replace:
+    prefix: /Users/fangliu/Code/image_similar/seven-server/task-file/

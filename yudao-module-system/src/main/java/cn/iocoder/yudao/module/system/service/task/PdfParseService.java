@@ -87,6 +87,7 @@ public class PdfParseService {
 
     public PdfParseResultDTO parsePdf(String filePath){
         try {
+            log.info("start parsePdf , filePath: {}", filePath);
             File file = new File(filePath);
             if (!file.exists()) {
                 log.error("PDF文件不存在：{}", filePath);

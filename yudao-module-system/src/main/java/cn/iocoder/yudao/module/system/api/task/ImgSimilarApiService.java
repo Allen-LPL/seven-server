@@ -5,6 +5,7 @@ import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
+import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
@@ -13,6 +14,7 @@ import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
@@ -71,6 +73,7 @@ public class ImgSimilarApiService {
   @Resource
   private SmallImageService smallImageService;
 
+  private static final String compare_url = "http://172.20.76.8:8087/compare_images";
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
 
@@ -145,6 +148,56 @@ public class ImgSimilarApiService {
     return CommonResult.success("success");
   }
 
+  public CommonResult<ImgSimilarCompareResVO> compare(Long id){
 
+    if (Objects.isNull(id)) {
+      return CommonResult.error(500, "参数不能为空");
+    }
+
+    ImgSimilarityDO imgSimilarityDO = imgSimilarityService.getById(id);
+    if (Objects.isNull(imgSimilarityDO)) {
+      return CommonResult.error(500, "相似对为空");
+    }
+
+    SmallImageDO sourceSmallImageDO = smallImageService.queryById(imgSimilarityDO.getSourceSmallImageId());
+    if (Objects.isNull(sourceSmallImageDO)) {
+      return CommonResult.error(500,"原小图为空");
+    }
+
+    SmallImageDO targetSmallImageDO = smallImageService.queryById(imgSimilarityDO.getTargetSmallImageId());
+    if (Objects.isNull(targetSmallImageDO)) {
+      return CommonResult.error(500,"目标小图为空");
+    }
+
+    JSONObject params = new JSONObject();
+    params.put("smallImage",sourceSmallImageDO.getImagePath());
+    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath());
+    String path = "./task-file/"+ imgSimilarityDO.getTaskId() + "/comparePath/";
+    params.put("comparePath",path);
+    String result = HttpUtils.post(compare_url,null, params.toJSONString());
+    log.info("compare image result: {}", result);
+
+    if (StringUtils.isEmpty(result)){
+      return CommonResult.error(500, "");
+    }
+    JSONObject jsonObject = JSONObject.parseObject(result);
+    String codeStr = jsonObject.getString("code");
+    if (StringUtils.isEmpty(codeStr) || !"0000".equals(codeStr)){
+      log.error(result);
+      return CommonResult.error(500, "");
+    }
+
+    JSONObject dataObj = jsonObject.getJSONObject("data");
+    if (Objects.isNull(dataObj)){
+      return CommonResult.error(500, "");
+    }
+    String  blockImage = dataObj.getString("blockImage");
+    String dotImage = dataObj.getString("dotImage");
+
+    ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
+    resVO.setBlockImage(blockImage);
+    resVO.setDotImage(dotImage);
+    return CommonResult.success(resVO);
+  }
 
 }

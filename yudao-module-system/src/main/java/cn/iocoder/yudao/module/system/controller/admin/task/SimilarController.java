@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.system.api.task.ImgSimilarApiService;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.TaskStrategyConfig;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,6 +66,16 @@ public class SimilarController {
       return imgSimilarApiService.reviewSimilar(reviewReqVO);
     }catch (Exception e) {
       log.error("review error，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @PostMapping("/compare/{id}")
+  public CommonResult<ImgSimilarCompareResVO> compare(@PathVariable Long id) {
+    try {
+      return imgSimilarApiService.compare(id);
+    }catch (Exception e) {
+      log.error("compare error，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }

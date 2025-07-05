@@ -153,7 +153,7 @@ public class ImageTaskApiService {
 
 
 
-  @Transactional(rollbackFor = Exception.class)
+  //@Transactional(rollbackFor = Exception.class)
   public ImageTaskCreateResDTO createTask(ImageTaskCreateReqVO reqVO){
 
     // 参数检测
@@ -243,7 +243,8 @@ public class ImageTaskApiService {
 //    }
 
     // todo : 异步算法检测
-    imageProcessService.processAsync(imageTaskDO.getId());
+    log.info("commit async");
+    imageProcessService.process(imageTaskDO.getId());
 
     // 更新任务状态为算法检测中
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();
