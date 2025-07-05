@@ -159,6 +159,13 @@ public class ImgSimilarApiService {
       return CommonResult.error(500, "相似对为空");
     }
 
+    if (StringUtils.isNotBlank(imgSimilarityDO.getDotImage()) && StringUtils.isNotBlank(imgSimilarityDO.getBlockImage())){
+      ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
+      resVO.setBlockImage(imgSimilarityDO.getBlockImage());
+      resVO.setDotImage(imgSimilarityDO.getDotImage());
+      return CommonResult.success(resVO);
+    }
+
     SmallImageDO sourceSmallImageDO = smallImageService.queryById(imgSimilarityDO.getSourceSmallImageId());
     if (Objects.isNull(sourceSmallImageDO)) {
       return CommonResult.error(500,"原小图为空");
@@ -193,6 +200,12 @@ public class ImgSimilarApiService {
     }
     String  blockImage = dataObj.getString("blockImage");
     String dotImage = dataObj.getString("dotImage");
+
+    ImgSimilarityDO update = new ImgSimilarityDO();
+    update.setId(id);
+    update.setDotImage(dotImage);
+    update.setBlockImage(blockImage);
+    imgSimilarityService.updateById(update);
 
     ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
     resVO.setBlockImage(blockImage);

@@ -194,7 +194,8 @@ public class ImageProcessService {
     List<ImgSimilarityDO> recallList = Lists.newArrayList();
     Set<Long> smallImageIdList = Sets.newHashSet();
     for (SmallImageDO smallImageDO : allSmallList) {
-      String vectorPath = smallImageDO.getVectorPath();
+      String vectorPath = smallImageDO.getVectorPath().replace(local_prefix,replacePrefix);
+      log.info("vectorPath = {}", vectorPath);
       Map<String,List<Float>> vectorMap = getVector(vectorPath);
       // todo  每个模型都检索一次，或者选一个检索一次
       for(String modelName : vectorMap.keySet()) {

@@ -52,4 +52,8 @@ public class ImgSimilarityDO extends BaseDO {
 
   private Boolean isSimilar;
 
+  private String dotImage;
+
+  private String blockImage;
+
 }
