@@ -327,3 +327,5 @@ pf4j:
 
 
 # scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@api02:/data/yudao
+
+# scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@192.168.1.100:/data/yudao && ssh api02 "cd /data/yudao && git pull && ./deploy.sh"
