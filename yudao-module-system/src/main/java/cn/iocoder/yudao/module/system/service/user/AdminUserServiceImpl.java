@@ -21,8 +21,10 @@ import cn.iocoder.yudao.module.system.controller.admin.user.vo.user.UserPageReqV
 import cn.iocoder.yudao.module.system.controller.admin.user.vo.user.UserSaveReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.dept.UserPostDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.permission.UserRoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.dal.mysql.dept.UserPostMapper;
+import cn.iocoder.yudao.module.system.dal.mysql.permission.UserRoleMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.user.AdminUserMapper;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.dept.PostService;
@@ -47,6 +49,9 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.*;
 import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.*;
 import static cn.iocoder.yudao.module.system.enums.LogRecordConstants.*;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+
+import java.util.ArrayList;
 
 /**
  * 后台用户 Service 实现类
@@ -78,6 +83,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Resource
     private UserPostMapper userPostMapper;
+    @Resource
+    private UserRoleMapper userRoleMapper;
 
     @Resource
     private ConfigApi configApi;
@@ -133,7 +140,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUserDO user = BeanUtils.toBean(registerReqVO, AdminUserDO.class);
         user.setStatus(CommonStatusEnum.ENABLE.getStatus()); // 默认开启
         user.setPassword(encodePassword(registerReqVO.getPassword())); // 加密密码
+        user.setPostIds(Collections.singleton(101L));// 用户默认为普通用户，写入json [101]
         userMapper.insert(user);
+
+        // 3. 写入到system_user_role表
+        userRoleMapper.insert(new UserRoleDO().setUserId(user.getId()).setRoleId(101L).setTenantId(1L));
+
         return user.getId();
     }
 
@@ -265,11 +277,35 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public PageResult<AdminUserDO> getUserPage(UserPageReqVO reqVO) {
+        // 获取当前登录用户的角色
+        Set<Long> loginUserRoles = permissionService.getUserRoleIdListByUserId(SecurityFrameworkUtils.getLoginUserId());
+
+        // 如果用户类型列表为空，则根据角色筛选用户类型
+        if (reqVO.getUserTypeList() == null) {
+            // 基于角色筛选用户类型
+            List<String> userTypeList = new ArrayList<>();
+            if (loginUserRoles.contains(1L)) { // 假设1L是超级管理员角色ID
+                // 系统管理员角色可以查看专家用户和科研管理员用户
+                userTypeList.add("Expert_admin");
+                userTypeList.add("Research_admin");
+            } else if (loginUserRoles.contains(101L)) { // 假设101L是科研管理员角色ID
+                // 科研管理员角色只能查看科研管理员用户
+                userTypeList.add("Research_admin");
+            }
+            userTypeList.add("Common");
+
+            // 设置查询条件
+            if (!userTypeList.isEmpty()) {
+                reqVO.setUserTypeList(userTypeList);
+            }
+        }
+
         // 如果有角色编号，查询角色对应的用户编号
-        Set<Long> userIds = reqVO.getRoleId() != null ?
-                permissionService.getUserRoleIdListByRoleId(singleton(reqVO.getRoleId())) : null;
+        Set<Long> userIds = reqVO.getRoleId() != null ? permissionService.getUserRoleIdListByRoleId(singleton(reqVO.getRoleId())) : null;
 
         // 分页查询
+        reqVO.setStatus(0); // 默认查询开启状态的用户
+        reqVO.setDeleted(0); // 默认查询未删除的用户
         return userMapper.selectPage(reqVO, getDeptCondition(reqVO.getDeptId()), userIds);
     }
 

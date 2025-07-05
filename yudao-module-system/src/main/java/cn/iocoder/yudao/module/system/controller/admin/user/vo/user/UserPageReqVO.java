@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
@@ -50,7 +51,12 @@ public class UserPageReqVO extends PageParam {
     @Schema(description = "用户类型", example = "researcher")
     private String userType;
 
+    @Schema(description = "用户类型列表", example = "[\"Expert_admin\", \"Research_admin\"]")
+    private List<String> userTypeList;
+
     @Schema(description = "邮箱验证状态", example = "true")
     private Boolean emailVerified;
 
+    @Schema(description = "逻辑删除", example = "1")
+    private Integer deleted;
 }

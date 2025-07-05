@@ -88,9 +88,9 @@ public class ImageTaskQueryResDTO {
   private Integer deleted;
 
   /**
-   * 上传文件或图片的第一个
+   * 上传文件或图片列表
    */
-  private String firstImage;
+  private List<String> firstImage;
 
   /**
    * 用户姓名
