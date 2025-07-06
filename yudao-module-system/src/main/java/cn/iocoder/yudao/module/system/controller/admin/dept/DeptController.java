@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.controller.admin.dept;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptListReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptRespVO;
@@ -42,6 +43,14 @@ public class DeptController {
         return success(deptId);
     }
 
+    @PostMapping("create-child")
+    @Operation(summary = "创建子部门", description = "创建parentId=100的子部门")
+    @PermitAll
+    public CommonResult<Long> createChildDept(@RequestParam("name") String name) {
+        Long deptId = deptService.createChildDept(name);
+        return success(deptId);
+    }
+
     @PutMapping("update")
     @Operation(summary = "更新部门")
     @PreAuthorize("@ss.hasPermission('system:dept:update')")
@@ -79,7 +88,7 @@ public class DeptController {
     @Operation(summary = "获取指定部门的直接子部门列表", description = "只获取下一层子部门，主要用于前端的下拉选项 支持分页")
     @Parameter(name = "id", description = "父部门编号", required = true, example = "100")
     @PermitAll
-    public CommonResult<List<DeptSimpleRespVO>> getChildDeptList(
+    public CommonResult<PageResult<DeptSimpleRespVO>> getChildDeptList(
             @RequestParam("id") Long id,
             @RequestParam(value = "pageNo", required = false) Integer pageNo,
             @RequestParam(value = "pageSize", required = false) Integer pageSize) {
@@ -93,11 +102,17 @@ public class DeptController {
                 .filter(dept -> CommonStatusEnum.ENABLE.getStatus().equals(dept.getStatus()))
                 .collect(Collectors.toList());
 
+        // 计算总数
+        long total = enabledList.size();
+
+        // 分页处理
         int fromIndex = Math.max(0, (page - 1) * size);
         int toIndex = Math.min(enabledList.size(), fromIndex + size);
         List<DeptDO> paged = fromIndex >= enabledList.size() ? Collections.emptyList() : enabledList.subList(fromIndex, toIndex);
 
-        return success(BeanUtils.toBean(paged, DeptSimpleRespVO.class));
+        // 转换为分页结果
+        List<DeptSimpleRespVO> voList = BeanUtils.toBean(paged, DeptSimpleRespVO.class);
+        return success(new PageResult<>(voList, total));
     }
 
     @GetMapping("/get")
