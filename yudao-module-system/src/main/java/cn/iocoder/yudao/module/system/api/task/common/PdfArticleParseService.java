@@ -54,43 +54,7 @@ public class PdfArticleParseService {
       updateArticle.setArticleId(articleDO.getArticleId());
       updateArticle.setId(articleDO.getId());
 
-      // 更新文章标题
-      if (parseResult.getTitle() != null) {
-        updateArticle.setArticleTitle(parseResult.getTitle());
-      }
-
-      // 更新杂志名称
-      if (parseResult.getJournal() != null) {
-        updateArticle.setArticleJournal(parseResult.getJournal());
-      }
-
-      // 更新关键词列表
-      if (parseResult.getKeywords() != null && !parseResult.getKeywords().isEmpty()) {
-        updateArticle.setArticleKeywords(parseResult.getKeywords());
-      }
-
-      // 更新作者姓名列表
-      if (parseResult.getAuthors() != null && !parseResult.getAuthors().isEmpty()) {
-        updateArticle.setAuthorName(parseResult.getAuthors());
-        // 由于API没有返回作者单位信息，暂时设置为空列表
-        updateArticle.setAuthorInstitution(Lists.newArrayList());
-      }
-
-      // 更新发表日期
-      if (parseResult.getPublicationDate() != null) {
-        try {
-          // 假设日期格式为 yyyy-MM-dd，需要转换为时间戳
-          java.time.LocalDate date = java.time.LocalDate.parse(parseResult.getPublicationDate());
-          updateArticle.setArticleDate(date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000);
-        } catch (Exception e) {
-          log.warn("解析发表日期失败: {}", parseResult.getPublicationDate());
-        }
-      }
-
-      // 更新DOI
-      if (parseResult.getDoi() != null) {
-        updateArticle.setPmid(parseResult.getDoi()); // 暂时将DOI存储在PMID字段
-      }
+      pdfParseService.transArticleToPdf(articleDO, parseResult);
 
       // 执行更新
       log.info("更新文章信息: {}", updateArticle);
@@ -101,5 +65,7 @@ public class PdfArticleParseService {
       throw new RuntimeException("更新文章信息失败: " + e.getMessage());
     }
   }
+
+
 
 }

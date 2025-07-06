@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.system.controller.admin.task.vo;
+package cn.iocoder.yudao.module.system.controller.admin.task.vo.image;
 
 
 import com.baomidou.mybatisplus.annotation.TableId;

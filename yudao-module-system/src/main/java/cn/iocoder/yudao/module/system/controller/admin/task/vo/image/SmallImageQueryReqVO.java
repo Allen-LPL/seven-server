@@ -1,4 +1,4 @@
-package cn.iocoder.yudao.module.system.controller.admin.task.vo;
+package cn.iocoder.yudao.module.system.controller.admin.task.vo.image;
 
 
 import cn.iocoder.yudao.framework.common.pojo.PageParam;

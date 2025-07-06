@@ -8,22 +8,21 @@ public class ProcessImageResponse {
 
   private Long articleId;
 
-  private String filePath;
+  private List<LargeImage> largeImageList;
 
-  private String largePrefixPath;
 
-  private String smallPrefixPath;
+  @Data
+  public static class LargeImage{
+    private String page_number;
+    private String origin_name;
+    private String caption;
+    private String path;
+    private List<SmallImage> smallImageList;
 
-  private String fileType;
-
-  private List<String> keywords;
-
-  private String author;
-
-  private String institution;
-
-  private Long articleDate;
-
-  private String specialty;
+    @Data
+    public static class SmallImage{
+      private String path;
+    }
+  }
 
 }

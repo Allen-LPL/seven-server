@@ -29,7 +29,7 @@ public class TestProcessImage {
 
   @Test
   public void testCompareImage() {
-    String url = "http://localhost:8081/compare_images";
+    String url = "http://localhost:8087/compare_images";
     TenantContextHolder.setTenantId(1L);
     JSONObject params = new JSONObject();
     params.put("smallImage","/Users/fangliu/Code/image_similar/seven-server/task-file/49/largeImage/158_1_1.jpg");

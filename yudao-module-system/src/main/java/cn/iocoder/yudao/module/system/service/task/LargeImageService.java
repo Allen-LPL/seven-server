@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.LargeImageQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageQueryReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
-import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.task.LargeImageMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import java.util.List;
@@ -33,6 +32,10 @@ public class LargeImageService {
     wrapper.eq("article_id", articleId);
     wrapper.eq("status", 1);
     return largeImageMapper.selectCount(wrapper);
+  }
+
+  public Integer insert(LargeImageDO image) {
+    return largeImageMapper.insert(image);
   }
 
 }

@@ -4,10 +4,11 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryResVO;
-import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
-import cn.iocoder.yudao.module.system.service.task.SmallImageService;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ImgReportQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ImgReportQueryResVO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgReportDO;
+import cn.iocoder.yudao.module.system.service.task.ImgReportService;
+import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
@@ -16,14 +17,17 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class SmallImageApiService {
+public class ImgReportApiService {
 
   @Resource
-  private SmallImageService smallImageService;
+  private ImgReportService imgReportService;
 
-  public CommonResult<PageResult<SmallImageQueryResVO>> pageQuery(SmallImageQueryReqVO reqVO){
-    PageResult<SmallImageDO> imageDOPageResult =  smallImageService.pageQuery(reqVO);
-    PageResult<SmallImageQueryResVO> pageResult = BeanUtils.toBean(imageDOPageResult,SmallImageQueryResVO.class);
+  @Resource
+  private ImgSimilarityService imgSimilarityService;
+
+  public CommonResult<PageResult<ImgReportQueryResVO>> pageQuery(ImgReportQueryReqVO reqVO){
+    PageResult<ImgReportDO> imageDOPageResult =  imgReportService.pageResult(reqVO);
+    PageResult<ImgReportQueryResVO> pageResult = BeanUtils.toBean(imageDOPageResult,ImgReportQueryResVO.class);
     return CommonResult.success(pageResult);
   }
 
@@ -31,7 +35,7 @@ public class SmallImageApiService {
     if (CollectionUtils.isAnyEmpty(ids)){
       return CommonResult.error(500, "请选择图片");
     }
-    Integer sum = smallImageService.deleteByIds(ids);
+    Integer sum = imgReportService.deleteByIds(ids);
     return CommonResult.success(sum);
   }
 
@@ -39,7 +43,7 @@ public class SmallImageApiService {
     if (Objects.isNull(id)){
       return CommonResult.error(500, "请选择图片");
     }
-    Integer sum = smallImageService.deleteById(id);
+    Integer sum = imgReportService.deleteById(id);
     return CommonResult.success(sum);
   }
 
