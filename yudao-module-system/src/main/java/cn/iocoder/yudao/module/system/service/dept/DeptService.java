@@ -23,6 +23,14 @@ public interface DeptService {
     Long createDept(DeptSaveReqVO createReqVO);
 
     /**
+     * 创建子部门，指定 parentId=100
+     *
+     * @param name 部门名称
+     * @return 部门编号
+     */
+    Long createChildDept(String name);
+
+    /**
      * 更新部门
      *
      * @param updateReqVO 部门信息
