@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageUpdateReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import java.util.List;
@@ -41,6 +42,21 @@ public class SmallImageApiService {
     }
     Integer sum = smallImageService.deleteById(id);
     return CommonResult.success(sum);
+  }
+
+  public CommonResult<String> updateById(SmallImageUpdateReqVO reqVO){
+    if (reqVO.getId() == null){
+      return CommonResult.error(500, "id 不能为空");
+    }
+    try {
+      SmallImageDO smallImageDO = new SmallImageDO();
+      BeanUtils.copyProperties(reqVO,smallImageDO);
+      smallImageService.updateById(smallImageDO);
+      return CommonResult.success(smallImageDO.getId().toString());
+    }catch (Exception e){
+      log.error("[update-small-image-error]", e);
+      return CommonResult.error(500, e.getMessage());
+    }
   }
 
 }

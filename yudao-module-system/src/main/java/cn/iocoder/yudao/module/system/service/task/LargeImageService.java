@@ -38,4 +38,8 @@ public class LargeImageService {
     return largeImageMapper.insert(image);
   }
 
+  public Integer updateById(LargeImageDO image) {
+    return largeImageMapper.updateById(image);
+  }
+
 }

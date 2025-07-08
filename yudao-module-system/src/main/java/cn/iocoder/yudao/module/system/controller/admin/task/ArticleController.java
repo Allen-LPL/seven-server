@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "管理后台 - 任务管理")
+@Tag(name = "管理后台 - 任务管理 -- 文章管理")
 @RestController
 @RequestMapping("/article/manager")
 @Slf4j
