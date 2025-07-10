@@ -50,7 +50,7 @@ public class ArticleController {
   }
 
   @GetMapping("/query")
-  public CommonResult<PageResult<FileQueryResVO>> create(FileQueryReqVO reqVO) {
+  public CommonResult<PageResult<FileQueryResVO>> query(FileQueryReqVO reqVO) {
     try {
       return articleApiService.pageQuery(reqVO);
     }catch (Exception e) {

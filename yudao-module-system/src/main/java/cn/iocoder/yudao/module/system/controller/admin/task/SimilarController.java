@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimila
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCommentReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateResVO;
@@ -22,11 +23,13 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskRev
 import com.alibaba.fastjson.JSONObject;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,6 +63,7 @@ public class SimilarController {
   }
 
 
+  @Operation(summary = "添加审核意见")
   @PostMapping("/review")
   public CommonResult<String> review(@RequestBody ImgSimilarityReviewReqVO reviewReqVO) {
     try {
@@ -80,4 +84,14 @@ public class SimilarController {
     }
   }
 
+  @Operation(summary = "删除审核意见")
+  @DeleteMapping("/comment/{id}")
+  public CommonResult<String> deleteComment(@PathVariable Long id) {
+    try {
+      return imgSimilarApiService.deleteComment(id);
+    } catch (Exception e) {
+      log.error("删除审核意见失败，", e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
 }

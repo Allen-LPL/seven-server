@@ -1,4 +1,9 @@
 ######################################################################
+# 前端
+node_modules/
+package-lock.json
+package.json
+
 # Build Tools
 task-file/
 

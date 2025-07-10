@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimila
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCommentReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
@@ -212,5 +213,31 @@ public class ImgSimilarApiService {
     resVO.setDotImage(dotImage);
     return CommonResult.success(resVO);
   }
-
+  
+  /**
+   * 删除审核意见
+   *
+   * @param id 相似对id
+   * @return 操作结果
+   */
+  public CommonResult<String> deleteComment(Long id) {
+    if (Objects.isNull(id)) {
+      return CommonResult.error(500, "相似对id不能为空");
+    }
+    
+    ImgSimilarityDO imgSimilarityDO = imgSimilarityService.getById(id);
+    if (Objects.isNull(imgSimilarityDO)) {
+      return CommonResult.error(500, "相似对不存在【" + id + "】");
+    }
+    
+    ImgSimilarityDO updateImgSimilar = new ImgSimilarityDO();
+    updateImgSimilar.setId(id);
+    updateImgSimilar.setReviewComment(""); // 清空审核意见
+    
+    Integer sum = imgSimilarityService.updateById(updateImgSimilar);
+    if (Objects.isNull(sum) || sum < 1) {
+      return CommonResult.error(500, "删除审核意见失败，请联系管理员");
+    }
+    return CommonResult.success("删除审核意见成功");
+  }
 }
