@@ -9,6 +9,7 @@ import javax.annotation.Resource;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -24,7 +25,7 @@ public class TestMilvus {
   private ImageProcessService imageProcessService;
 
   @Test
-  public void testInsert() {
+  public void fullDump() {
     TenantContextHolder.setTenantId(1L);
     milvusOperateService.fullDump("resnet50_vectors", 2048);
   }
@@ -32,8 +33,8 @@ public class TestMilvus {
   @Test
   public void testData(){
     TenantContextHolder.setTenantId(1L);
-    String collectionName = "resnet50_vectors_1751209930493";
-    milvusOperateService.batchWriteData(collectionName);
+    String collectionName = "resnet50_vectors_1752144818416";
+    milvusOperateService.batchWriteDataFromDb(collectionName);
   }
 
   @Test
@@ -45,21 +46,21 @@ public class TestMilvus {
 
   @Test
   public void testDeleteCollection(){
-    String collectionName = "resnet50_vectors_1751209930493";
+    String collectionName = "resnet50_vectors_1751808797586";
     milvusOperateService.collectionDelete(collectionName);
   }
 
   @Test
   public void testManagerAlias(){
     String oldName = null;
-    String newName = "resnet50_vectors_1751209930493";
+    String newName = "resnet50_vectors_1752144818416";
     String alias = "resnet50_vectors";
     milvusOperateService.renameAliasToRealCollection(newName, oldName, alias);
   }
 
   @Test
   public void getMilvusCount(){
-    String alias = "resnet50_vectors_1751209930493";
+    String alias = "resnet50_vectors";
     int count = milvusOperateService.collectionDocCount(alias);
     log.info("[getMilvusCount][{}],count : {}", alias, count);
     milvusOperateService.loadCollection(alias);
@@ -69,6 +70,28 @@ public class TestMilvus {
   public void testMilvusRecall(){
     TenantContextHolder.setTenantId(1L);
     imageProcessService.process(49L);
+  }
+
+  @Test
+  public void testMilvusName(){
+    String alias = "resnet50_vectors";
+    String name = milvusOperateService.getOldCollectionName(alias);
+    log.info("[testMilvusName][{}],name : {}", alias, name);
+  }
+
+  @Test
+  public void rename(){
+    String alias = "resnet50_vectors";
+    String newName = "resnet50_vectors_1752144818416";
+    String oldName = "resnet50_vectors_1751808797586";
+    Boolean flag = milvusOperateService.renameAliasToRealCollection(newName,oldName,alias);
+    log.info("[rename][{}],flag : {}", alias, flag);
+  }
+
+  @Test
+  public void loadCollection(){
+    String alias = "resnet50_vectors";
+    milvusOperateService.loadCollection(alias);
   }
 
 }

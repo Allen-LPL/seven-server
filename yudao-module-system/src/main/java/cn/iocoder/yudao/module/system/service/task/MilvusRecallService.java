@@ -64,7 +64,7 @@ public class MilvusRecallService {
     List<List<Float>> searchVectors = Arrays.asList(vector);
 
     SearchParam searchParam = SearchParam.newBuilder()
-        .withCollectionName("resnet50_vectors_1751209930493")
+        .withCollectionName("resnet50_vectors")
         .withMetricType(MetricType.IP)
         .withOutFields(Lists.newArrayList(MilvusConstant.imageId))
         .withTopK(30)

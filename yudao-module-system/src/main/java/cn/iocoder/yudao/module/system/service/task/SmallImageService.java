@@ -65,4 +65,10 @@ public class SmallImageService {
     return smallImageMapper.updateById(smallImage);
   }
 
+  public List<SmallImageDO> queryByArticleId(Long articleId){
+    return smallImageMapper.selectList(new QueryWrapper<SmallImageDO>()
+        .eq("article_id", articleId)
+        .eq("status", 1));
+  }
+
 }

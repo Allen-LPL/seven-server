@@ -1,10 +1,19 @@
 package cn.iocoder.yudao.module.system.service.task;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.text.csv.CsvData;
+import cn.hutool.core.text.csv.CsvReadConfig;
+import cn.hutool.core.text.csv.CsvReader;
+import cn.hutool.core.text.csv.CsvRow;
+import cn.hutool.core.text.csv.CsvUtil;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.DescribeAliasResponse;
@@ -36,8 +45,11 @@ import io.milvus.param.index.CreateIndexParam;
 import io.milvus.v2.service.utility.request.DescribeAliasReq;
 import io.milvus.v2.service.utility.response.DescribeAliasResp;
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -54,6 +66,12 @@ public class MilvusOperateService {
 
   @Resource
   private ImageProcessService imageProcessService;
+
+  @Resource
+  private ArticleService articleService;
+
+  @Resource
+  private SmallImageService smallImageService;
 
   public void fullDump(String alias,Integer dimension){
     // 1.获取新旧collection名字
@@ -72,7 +90,8 @@ public class MilvusOperateService {
     createScalarIndex(newName);
 
     // 4.写入数据
-    batchWriteData(newName);
+    //batchWriteData(newName);
+    batchWriteDataFromDb(newName);
 
     // 5.切换别名
     renameAliasToRealCollection(newName,oldName, alias);
@@ -114,7 +133,68 @@ public class MilvusOperateService {
         writeData(newName,batchList);
       }
     }
+  }
 
+  public void batchWriteDataFromDb(String newName){
+    //Long maxId = articleService.maxId();
+    //Long minId = articleService.minId();
+    Long maxId = 311L;
+    Long minId = 277L;
+    int batch = 10;
+    while (true){
+      List<ArticleDO> articleDOList = articleService.queryByIdsBatch(minId,maxId,batch);
+      if (org.apache.commons.collections4.CollectionUtils.isEmpty(articleDOList) || minId >= maxId){
+        break;
+      }
+
+      for (ArticleDO articleDO : articleDOList) {
+        List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
+        List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(articleDO.getId());
+        for (SmallImageDO smallImageDO : smallImageDOList) {
+          SmallImageMilvusDTO smallImageMilvusDTO = new SmallImageMilvusDTO();
+          smallImageMilvusDTO.setId(smallImageDO.getId());
+          Map<String,List<Float>> vectorMap = getVector(smallImageDO.getVectorPath());
+          smallImageMilvusDTO.setResnet50Vectors(vectorMap.get("Resnet50"));
+          smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());
+          smallImageMilvusDTO.setSpecialty(articleDO.getMedicalSpecialty());
+          smallImageMilvusDTO.setArticleDate(articleDO.getArticleDate());
+          smallImageMilvusDTO.setArticleId(articleDO.getId());
+          smallImageMilvusDTO.setInstitution(articleDO.getAuthorInstitution());
+          smallImageMilvusDTO.setKeywords(articleDO.getArticleKeywords());
+          batchList.add(smallImageMilvusDTO);
+        }
+        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(batchList)){
+          writeData(newName,batchList);
+        }
+      }
+
+      log.info("completeOfflineLabels min : {}, max :{}",minId,maxId);
+      minId = articleDOList.get(articleDOList.size()-1).getId();
+    }
+  }
+
+  private Map<String,List<Float>> getVector(String vectorPath){
+
+    Map<String,List<Float>> vectorMap = Maps.newHashMap();
+
+    CsvReadConfig config = CsvReadConfig.defaultConfig()
+        .setFieldSeparator('\t');
+
+    // 2. 读取 CSV 文件
+    CsvReader reader = CsvUtil.getReader(config);
+    CsvData data = reader.read(FileUtil.file(vectorPath));
+
+    // 3. 遍历数据
+    for (CsvRow row : data.getRows()) {
+      String model = row.get(0);
+      String vectorStr = row.get(1);
+      List<Float> vectorArray = Arrays.stream(vectorStr.substring(1, vectorStr.length() - 1).split(","))
+          .map(String::trim)
+          .map(Float::parseFloat)
+          .collect(Collectors.toList());
+      vectorMap.put(model, vectorArray);
+    }
+    return  vectorMap;
   }
 
   public void  writeData(String newName, List<SmallImageMilvusDTO> smallImageMilvusDTOS){
@@ -329,7 +409,7 @@ public class MilvusOperateService {
         .newBuilder().withCollectionName(alias).build());
     if (responseR != null && responseR.getStatus() == 0) {
       DescribeCollectionResponse response = responseR.getData();
-      return response.getCollectionName();
+      return response.getSchema().getName();
     }
     return null;
   }

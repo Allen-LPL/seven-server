@@ -9,7 +9,6 @@ import cn.hutool.core.text.csv.CsvReader;
 import cn.hutool.core.text.csv.CsvRow;
 import cn.hutool.core.text.csv.CsvUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.common.util.spring.SpringUtils;
@@ -53,6 +52,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -222,13 +222,15 @@ public class ImageProcessService {
     }
 
     // 补充相似图片的 文章id 和 大图id
-    List<SmallImageDO> smallImageDOList = smallImageService.queryByIds(smallImageIdList);
-    Map<Long,SmallImageDO> smallImageDOMap = smallImageDOList.stream().collect(Collectors.toMap(SmallImageDO::getId, x -> x));
-    for (ImgSimilarityDO imgSimilarityDO : recallList) {
-      SmallImageDO smallImageDO = smallImageDOMap.get(imgSimilarityDO.getTargetSmallImageId());
-      if (Objects.nonNull(smallImageDO)) {
-        imgSimilarityDO.setTargetArticleId(smallImageDO.getArticleId());
-        imgSimilarityDO.setTargetLargeImageId(smallImageDO.getLargeImageId());
+    if(CollectionUtils.isNotEmpty(smallImageIdList)) {
+      List<SmallImageDO> smallImageDOList = smallImageService.queryByIds(smallImageIdList);
+      Map<Long,SmallImageDO> smallImageDOMap = smallImageDOList.stream().collect(Collectors.toMap(SmallImageDO::getId, x -> x));
+      for (ImgSimilarityDO imgSimilarityDO : recallList) {
+        SmallImageDO smallImageDO = smallImageDOMap.get(imgSimilarityDO.getTargetSmallImageId());
+        if (Objects.nonNull(smallImageDO)) {
+          imgSimilarityDO.setTargetArticleId(smallImageDO.getArticleId());
+          imgSimilarityDO.setTargetLargeImageId(smallImageDO.getLargeImageId());
+        }
       }
     }
 
@@ -247,7 +249,7 @@ public class ImageProcessService {
     imgReportService.insert(imgReportDO);
 
     // 写入相似图片对
-    if (!CollectionUtils.isAnyEmpty(recallList)){
+    if (!CollectionUtils.isNotEmpty(recallList)){
       Boolean flag = imgSimilarityService.batchInsert(recallList);
       if (!flag){
         log.error("批量写入相似图片对失败");
