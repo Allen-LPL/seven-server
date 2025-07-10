@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageQueryResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageUpdateReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
 import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
@@ -48,6 +49,16 @@ public class LargeImageApiService {
       return CommonResult.error(500, "请选择图片");
     }
     Integer sum = largeImageService.deleteById(id);
+    return CommonResult.success(sum);
+  }
+
+  public CommonResult<Integer> update(LargeImageUpdateReqVO reqVO){
+    if (Objects.isNull(reqVO) || Objects.isNull(reqVO.getId())){
+      return CommonResult.error(500, "参数不能为空");
+    }
+    LargeImageDO largeImageDO = new LargeImageDO();
+    BeanUtils.copyProperties(reqVO, largeImageDO);
+    Integer sum = largeImageService.updateById(largeImageDO);
     return CommonResult.success(sum);
   }
 

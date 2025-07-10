@@ -70,5 +70,9 @@ public class ImgSimilarQueryResVO {
   private String creatorUserName;
 
   @Schema(description = "是否相似")
+<<<<<<< HEAD
   private Boolean isSimilar = Boolean.TRUE;
+=======
+  private Boolean isSimilar;
+>>>>>>> b245e5f09336c5d19a857e95506d60666be04e67
 }

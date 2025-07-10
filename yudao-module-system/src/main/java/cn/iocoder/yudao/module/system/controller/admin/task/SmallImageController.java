@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.api.task.SmallImageApiService;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageUpdateReqVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import javax.annotation.Resource;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "管理后台 - 任务管理")
+@Tag(name = "管理后台 - 任务管理--小图管理")
 @RestController
 @RequestMapping("/smallImage/manager")
 @Slf4j
@@ -28,7 +29,7 @@ public class SmallImageController {
   private SmallImageApiService smallImageApiService;
 
   @GetMapping("/query")
-  public CommonResult<PageResult<SmallImageQueryResVO>> create(SmallImageQueryReqVO reqVO) {
+  public CommonResult<PageResult<SmallImageQueryResVO>> query(SmallImageQueryReqVO reqVO) {
     try {
       return smallImageApiService.pageQuery(reqVO);
     }catch (Exception e) {
@@ -51,6 +52,17 @@ public class SmallImageController {
   public CommonResult<Integer> deleteById(@RequestBody List<Long> ids) {
     try {
       return smallImageApiService.deleteByIds(ids);
+    }catch (Exception e) {
+      log.error("deleteByIds error，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+
+  @PostMapping("/update")
+  public CommonResult<String> update(@RequestBody SmallImageUpdateReqVO reqVO) {
+    try {
+      return smallImageApiService.updateById(reqVO);
     }catch (Exception e) {
       log.error("deleteByIds error，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));

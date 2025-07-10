@@ -61,4 +61,8 @@ public class SmallImageService {
     return smallImageMapper.insertBatch(smallImages);
   }
 
+  public Integer updateById(SmallImageDO smallImage) {
+    return smallImageMapper.updateById(smallImage);
+  }
+
 }

@@ -7,6 +7,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.api.task.LargeImageApiService;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageQueryResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.LargeImageUpdateReqVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import javax.annotation.Resource;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "管理后台 - 任务管理")
+@Tag(name = "管理后台 - 任务管理 -- 大图管理")
 @RestController
 @RequestMapping("/largeImage/manager")
 @Slf4j
@@ -57,5 +58,15 @@ public class LargeImageController {
     }
   }
 
+
+  @PostMapping("/update")
+  public CommonResult<Integer> update(@RequestBody LargeImageUpdateReqVO reqVO) {
+    try {
+      return largeImageApiService.update(reqVO);
+    }catch (Exception e) {
+      log.error("deleteByIds error，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
 
 }
