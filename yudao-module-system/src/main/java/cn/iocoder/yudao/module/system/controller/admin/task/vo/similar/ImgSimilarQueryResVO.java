@@ -68,4 +68,7 @@ public class ImgSimilarQueryResVO {
 
   @Schema(description = "创建用户名")
   private String creatorUserName;
+
+  @Schema(description = "是否相似")
+  private Boolean isSimilar = Boolean.TRUE;
 }

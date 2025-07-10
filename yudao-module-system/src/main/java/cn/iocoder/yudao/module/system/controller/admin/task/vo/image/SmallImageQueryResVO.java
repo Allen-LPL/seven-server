@@ -27,5 +27,7 @@ public class SmallImageQueryResVO {
   private String vectorId;
 
   private Integer status;
+  
+  private String imagePath; // 图片存储地址
 
 }
