@@ -8,7 +8,7 @@ import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
+import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
@@ -37,7 +38,6 @@ import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -63,13 +63,10 @@ public class ImageTaskApiService {
   private PermissionService permissionService;
 
   @Resource
-  private PdfArticleParseService pdfArticleParseService;
-
-  @Resource
   private FileUploadService fileUploadService;
 
   @Resource
-  private ImageProcessService imageProcessService;
+  private TaskImageProcessService imageProcessService;
 
 
   private static final String UPLOAD_PATH = "./task-file/%s";
@@ -200,7 +197,6 @@ public class ImageTaskApiService {
 
     // 创建文件并异步解析PDF
     List<ArticleDO> articleDOList = Lists.newArrayList();
-    
     for (FileContent fileContent : fileList) {
       ArticleDO articleDO = new ArticleDO();
       articleDO.setTaskId(imageTaskDO.getId());
@@ -208,12 +204,13 @@ public class ImageTaskApiService {
       articleDO.setFilePath(fileContent.getFilePath());
       articleDO.setFileSize(fileContent.getFileSize());
       articleDO.setFileType(reqVO.getFileType());
+      articleDO.setIsSource(0);
 
       // 设置基本信息
       articleDO.setArticleDate(System.currentTimeMillis());
-      if ("pdf".equalsIgnoreCase(reqVO.getFileType())){
+      if (FileTypeEnum.PDF.getCode().equalsIgnoreCase(reqVO.getFileType())){
         articleDO.setIsImage(0);
-      } else if ("image".equalsIgnoreCase(reqVO.getFileType())){
+      } else if (FileTypeEnum.IMAGE.getCode().equalsIgnoreCase(reqVO.getFileType())){
         articleDO.setIsImage(1);
       }
 
@@ -235,16 +232,9 @@ public class ImageTaskApiService {
       throw new RuntimeException("任务入库失败");
     }
 
-    // 对PDF文件进行异步解析
-//    if ("pdf".equalsIgnoreCase(reqVO.getFileType())) {
-//      for (ArticleDO articleDO : articleDOList) {
-//        pdfArticleParseService.asyncParsePdfAndUpdate(articleDO);
-//      }
-//    }
-
-    // todo : 异步算法检测
+    // 异步算法检测
     log.info("commit async");
-    imageProcessService.process(imageTaskDO.getId());
+    imageProcessService.processAsync(imageTaskDO.getId());
 
     // 更新任务状态为算法检测中
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();

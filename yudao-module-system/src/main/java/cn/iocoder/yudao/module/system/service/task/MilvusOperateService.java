@@ -1,26 +1,19 @@
 package cn.iocoder.yudao.module.system.service.task;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.text.csv.CsvData;
-import cn.hutool.core.text.csv.CsvReadConfig;
-import cn.hutool.core.text.csv.CsvReader;
-import cn.hutool.core.text.csv.CsvRow;
-import cn.hutool.core.text.csv.CsvUtil;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
+import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
+import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
+import cn.iocoder.yudao.module.system.service.task.utils.CsvReadVectorUtils;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
-import io.milvus.grpc.DescribeAliasResponse;
 import io.milvus.grpc.DescribeCollectionResponse;
 import io.milvus.grpc.GetCollectionStatisticsResponse;
 import io.milvus.grpc.KeyValuePair;
-import io.milvus.grpc.ListAliasesResponse;
 import io.milvus.grpc.MutationResult;
 import io.milvus.param.IndexType;
 import io.milvus.param.MetricType;
@@ -28,8 +21,6 @@ import io.milvus.param.R;
 import io.milvus.param.RpcStatus;
 import io.milvus.param.alias.AlterAliasParam;
 import io.milvus.param.alias.CreateAliasParam;
-import io.milvus.param.alias.ListAliasesParam;
-import io.milvus.param.bulkinsert.BulkInsertParam;
 import io.milvus.param.collection.CollectionSchemaParam;
 import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.DescribeCollectionParam;
@@ -42,10 +33,7 @@ import io.milvus.param.collection.ReleaseCollectionParam;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.dml.InsertParam.Field;
 import io.milvus.param.index.CreateIndexParam;
-import io.milvus.v2.service.utility.request.DescribeAliasReq;
-import io.milvus.v2.service.utility.response.DescribeAliasResp;
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,7 +43,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.s3.endpoints.internal.Value.Str;
 
 @Service
 @Slf4j
@@ -65,7 +52,7 @@ public class MilvusOperateService {
   private MilvusServiceClient imageMilvusClient;
 
   @Resource
-  private ImageProcessService imageProcessService;
+  private DbImageProcessService dbImageProcessService;
 
   @Resource
   private ArticleService articleService;
@@ -90,12 +77,12 @@ public class MilvusOperateService {
     createScalarIndex(newName);
 
     // 4.写入数据
-    //batchWriteData(newName);
+    //batchWriteDataFromFilePath(newName);
     batchWriteDataFromDb(newName);
 
     // 5.切换别名
     renameAliasToRealCollection(newName,oldName, alias);
-    loadCollection(alias);
+    loadCollection(newName);
     log.info("old doc count : {}, new doc count : {}",collectionDocCount(oldName), collectionDocCount(newName));
 
     // 6.删除旧索引
@@ -103,7 +90,7 @@ public class MilvusOperateService {
     collectionDelete(oldName);
   }
 
-  public void batchWriteData(String newName){
+  public void batchWriteDataFromFilePath(String newName){
     String path = "/Users/fangliu/Documents/pdf";
     File root = new File(path);
     File[] files = root.listFiles();
@@ -120,7 +107,7 @@ public class MilvusOperateService {
     }
 
     for (String file : fileList) {
-      List<SmallImageMilvusDTO> smallImageMilvusDTOS =  imageProcessService.processFile(file);
+      List<SmallImageMilvusDTO> smallImageMilvusDTOS =  dbImageProcessService.processFileSingle(file,"pdf");
       List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
       for (SmallImageMilvusDTO smallImageMilvusDTO : smallImageMilvusDTOS) {
         batchList.add(smallImageMilvusDTO);
@@ -153,8 +140,9 @@ public class MilvusOperateService {
         for (SmallImageDO smallImageDO : smallImageDOList) {
           SmallImageMilvusDTO smallImageMilvusDTO = new SmallImageMilvusDTO();
           smallImageMilvusDTO.setId(smallImageDO.getId());
-          Map<String,List<Float>> vectorMap = getVector(smallImageDO.getVectorPath());
-          smallImageMilvusDTO.setResnet50Vectors(vectorMap.get("Resnet50"));
+          Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath());
+          List<Float> floatList = vectorMap.get(ModelNameEnum.ResNet50.getCode()).stream().map(Double::floatValue).collect(Collectors.toList());
+          smallImageMilvusDTO.setResnet50Vectors(floatList);
           smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());
           smallImageMilvusDTO.setSpecialty(articleDO.getMedicalSpecialty());
           smallImageMilvusDTO.setArticleDate(articleDO.getArticleDate());
@@ -173,29 +161,6 @@ public class MilvusOperateService {
     }
   }
 
-  private Map<String,List<Float>> getVector(String vectorPath){
-
-    Map<String,List<Float>> vectorMap = Maps.newHashMap();
-
-    CsvReadConfig config = CsvReadConfig.defaultConfig()
-        .setFieldSeparator('\t');
-
-    // 2. 读取 CSV 文件
-    CsvReader reader = CsvUtil.getReader(config);
-    CsvData data = reader.read(FileUtil.file(vectorPath));
-
-    // 3. 遍历数据
-    for (CsvRow row : data.getRows()) {
-      String model = row.get(0);
-      String vectorStr = row.get(1);
-      List<Float> vectorArray = Arrays.stream(vectorStr.substring(1, vectorStr.length() - 1).split(","))
-          .map(String::trim)
-          .map(Float::parseFloat)
-          .collect(Collectors.toList());
-      vectorMap.put(model, vectorArray);
-    }
-    return  vectorMap;
-  }
 
   public void  writeData(String newName, List<SmallImageMilvusDTO> smallImageMilvusDTOS){
 

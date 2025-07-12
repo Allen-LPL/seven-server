@@ -1,56 +1,34 @@
 package cn.iocoder.yudao.module.system.api.task;
 
-import cn.hutool.core.date.DatePattern;
-import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
-import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
-import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
-import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
-import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
-import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCommentReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
-import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
-import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
-import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
-import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
-import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
-import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
-import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
@@ -75,6 +53,12 @@ public class ImgSimilarApiService {
   private SmallImageService smallImageService;
 
   private static final String compare_url = "http://172.20.76.8:8087/compare_images";
+
+  @Value("${image.replace.prefix}")
+  private String replacePrefix;
+
+  private static final String local_prefix = "./task-file/";
+
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
 
@@ -178,10 +162,11 @@ public class ImgSimilarApiService {
     }
 
     JSONObject params = new JSONObject();
-    params.put("smallImage",sourceSmallImageDO.getImagePath());
-    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath());
+    params.put("smallImage",sourceSmallImageDO.getImagePath().replace(local_prefix, replacePrefix));
+    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath().replace(local_prefix, replacePrefix));
     String path = "./task-file/"+ imgSimilarityDO.getTaskId() + "/comparePath/";
-    params.put("comparePath",path);
+    params.put("comparePath",path.replace(local_prefix, replacePrefix));
+    log.info("compare image params {}", params.toJSONString());
     String result = HttpUtils.post(compare_url,null, params.toJSONString());
     log.info("compare image result: {}", result);
 
@@ -204,8 +189,8 @@ public class ImgSimilarApiService {
 
     ImgSimilarityDO update = new ImgSimilarityDO();
     update.setId(id);
-    update.setDotImage(dotImage);
-    update.setBlockImage(blockImage);
+    update.setDotImage(dotImage.replace(replacePrefix,local_prefix ));
+    update.setBlockImage(blockImage.replace(replacePrefix,local_prefix ));
     imgSimilarityService.updateById(update);
 
     ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();

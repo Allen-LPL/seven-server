@@ -78,5 +78,10 @@ public class LargeImageDO extends BaseDO {
    */
   private Integer status = 1;
 
+  /**
+   *  是否底库(1是,0否)
+   */
+  private Integer isSource = 1;
+
 
 }

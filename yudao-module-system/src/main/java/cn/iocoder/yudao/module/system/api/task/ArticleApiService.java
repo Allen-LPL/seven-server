@@ -5,8 +5,9 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
+import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
@@ -14,12 +15,14 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileCreateRe
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryResVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
+import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,9 +39,6 @@ public class ArticleApiService {
   private ArticleService articleService;
 
   @Resource
-  private PdfArticleParseService pdfArticleParseService;
-
-  @Resource
   private FileUploadService fileUploadService;
 
   @Resource
@@ -48,7 +48,7 @@ public class ArticleApiService {
   private SmallImageService smallImageService;
 
   @Resource
-  private ImageProcessService imageProcessService;
+  private DbImageProcessService dbImageProcessService;
 
   public CommonResult<PageResult<FileQueryResVO>> pageQuery(FileQueryReqVO fileQueryReqVO) {
     PageResult<ArticleDO> pageResult = articleService.queryPage(fileQueryReqVO);
@@ -84,7 +84,7 @@ public class ArticleApiService {
   public CommonResult<String> create(FileCreateReqVO reqVO){
 
     // 任务ID
-    String filePath = String.format(UPLOAD_PATH, UUID.randomUUID().toString());
+    String filePath = String.format(UPLOAD_PATH, UUID.randomUUID());
 
     // 上传文件
     MultipartFile[] files = reqVO.getFiles();
@@ -95,49 +95,11 @@ public class ArticleApiService {
 
     // 创建文件并异步解析PDF
     List<FileContent> fileList = imageTaskResDTO.getSuccessFile();
-    List<ArticleDO> articleDOList = Lists.newArrayList();
-    for (FileContent fileContent : fileList) {
-      ArticleDO articleDO = new ArticleDO();
-      articleDO.setFileName(fileContent.getFileName());
-      articleDO.setFilePath(fileContent.getFilePath());
-      articleDO.setFileSize(fileContent.getFileSize());
-      articleDO.setFileType(reqVO.getFileType());
+    List<String> filePathList = fileList.stream().map(FileContent::getFilePath).collect(Collectors.toList());
 
-      // 设置基本信息
-      articleDO.setArticleDate(System.currentTimeMillis());
-      if ("pdf".equalsIgnoreCase(reqVO.getFileType())){
-        articleDO.setIsImage(0);
-      } else if ("image".equalsIgnoreCase(reqVO.getFileType())){
-        articleDO.setIsImage(1);
-      }
-
-      // 初始化为空列表，等待PDF解析完成后更新
-      articleDO.setArticleKeywords(Lists.newArrayList());
-      articleDO.setAuthorName(Lists.newArrayList());
-      articleDO.setAuthorInstitution(Lists.newArrayList());
-
-      // 设置默认值
-      articleDO.setArticleJournal("");
-      articleDO.setArticleTitle("");
-      articleDO.setPmid("");
-      articleDO.setMedicalSpecialty("");
-
-      articleDOList.add(articleDO);
-    }
-    Boolean success = articleService.batchCreate(articleDOList);
-    if (!success){
-      throw new RuntimeException("文件入库失败");
-    }
-
-    // 对PDF文件进行异步解析
-    if ("pdf".equalsIgnoreCase(reqVO.getFileType())) {
-      for (ArticleDO articleDO : articleDOList) {
-        pdfArticleParseService.asyncParsePdfAndUpdate(articleDO);
-      }
-    }
-
-    // todo 异步调用算法切割图片&提取向量特征
-
+    // todo 五个库
+    String collectionName = ModelNameEnum.ResNet50.getCode()+"_vectors";
+    dbImageProcessService.processFileBatchAsync(filePathList, reqVO.getFileType(),collectionName);
 
     return CommonResult.success("success");
   }

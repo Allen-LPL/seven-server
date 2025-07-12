@@ -2,15 +2,13 @@ package cn.iocoder.yudao;
 
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
-import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageRequest;
+import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
+import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.server.YudaoServerApplication;
 import com.alibaba.fastjson.JSONObject;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.commons.util.StringUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @Slf4j
@@ -18,12 +16,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class TestProcessImage {
 
   @Resource
-  private ImageProcessService imageProcessService;
+  private TaskImageProcessService imageProcessService;
 
   @Test
   public void TestProcessImage() {
     TenantContextHolder.setTenantId(1L);
-    imageProcessService.process(49L);
+    imageProcessService.process(49L, FileTypeEnum.PDF.getCode());
 
   }
 

@@ -1,15 +1,11 @@
 package cn.iocoder.yudao;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
+import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
 import cn.iocoder.yudao.module.system.service.task.MilvusOperateService;
 import cn.iocoder.yudao.server.YudaoServerApplication;
 import javax.annotation.Resource;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestWrapper;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -22,7 +18,7 @@ public class TestMilvus {
   private MilvusOperateService milvusOperateService;
 
   @Resource
-  private ImageProcessService imageProcessService;
+  private TaskImageProcessService imageProcessService;
 
   @Test
   public void fullDump() {
@@ -33,7 +29,7 @@ public class TestMilvus {
   @Test
   public void testData(){
     TenantContextHolder.setTenantId(1L);
-    String collectionName = "resnet50_vectors_1752144818416";
+    String collectionName = "resnet50_vectors_1752161613282";
     milvusOperateService.batchWriteDataFromDb(collectionName);
   }
 
@@ -52,15 +48,15 @@ public class TestMilvus {
 
   @Test
   public void testManagerAlias(){
-    String oldName = null;
-    String newName = "resnet50_vectors_1752144818416";
+    String oldName = "resnet50_vectors_1752144818416";
+    String newName = "resnet50_vectors_1752161613282";
     String alias = "resnet50_vectors";
     milvusOperateService.renameAliasToRealCollection(newName, oldName, alias);
   }
 
   @Test
   public void getMilvusCount(){
-    String alias = "resnet50_vectors";
+    String alias = "resnet50_vectors_1752161613282";
     int count = milvusOperateService.collectionDocCount(alias);
     log.info("[getMilvusCount][{}],count : {}", alias, count);
     milvusOperateService.loadCollection(alias);
@@ -69,7 +65,7 @@ public class TestMilvus {
   @Test
   public void testMilvusRecall(){
     TenantContextHolder.setTenantId(1L);
-    imageProcessService.process(49L);
+    imageProcessService.process(49L,"pdf");
   }
 
   @Test
@@ -90,7 +86,7 @@ public class TestMilvus {
 
   @Test
   public void loadCollection(){
-    String alias = "resnet50_vectors";
+    String alias = "resnet50_vectors_1752161613282";
     milvusOperateService.loadCollection(alias);
   }
 

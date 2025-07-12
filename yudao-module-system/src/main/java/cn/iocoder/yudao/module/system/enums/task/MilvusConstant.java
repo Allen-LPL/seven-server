@@ -33,4 +33,8 @@ public class MilvusConstant {
   public static final String params = "{\"nlist\":1024,\"nprobe\":16}";
 
 
+  public static final String SCORE = "score";
+
+
+
 }

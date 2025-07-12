@@ -41,4 +41,9 @@ public class SmallImageDO extends BaseDO {
   private String imagePath;
 
   private Integer status;
+
+  /**
+   *  是否底库(1是,0否)
+   */
+  private Integer isSource = 1;
 }
