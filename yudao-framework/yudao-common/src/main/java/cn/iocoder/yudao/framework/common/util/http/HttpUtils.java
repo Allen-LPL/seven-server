@@ -151,7 +151,7 @@ public class HttpUtils {
     public static String post(String url, Map<String, String> headers, String requestBody) {
         try (HttpResponse response = HttpRequest.post(url)
                 .addHeaders(headers)
-                .body(requestBody).timeout(50000)
+                .body(requestBody).timeout(5000000)
                 .execute()) {
             return response.body();
         }

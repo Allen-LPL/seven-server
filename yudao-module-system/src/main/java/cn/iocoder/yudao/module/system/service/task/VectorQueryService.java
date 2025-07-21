@@ -68,7 +68,7 @@ public class VectorQueryService {
       Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(vectorPath);
       // todo  每个模型都检索一次，或者选一个检索一次
       for(String modelName : vectorMap.keySet()) {
-        if (ModelNameEnum.ResNet50.getCode().equals(modelName)) {
+        if (ModelNameEnum.ResNet50.getL2VectorName().equals(modelName)) {
           log.info("start vector recall: {}", vectorPath);
           List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
           List<Map<String,Object>> resultList = milvusRecallService.recall(floatList, modelName, queryType, strategyConfig);
@@ -108,15 +108,15 @@ public class VectorQueryService {
       VectorCalculateDTO vectorCalculateDTO = new VectorCalculateDTO();
       vectorCalculateDTO.setSmallImageId(smallImageDO.getId());
       for (String modelName : vectorMap.keySet()) {
-        if (ModelNameEnum.ResNet50.getCode().equals(modelName)) {
+        if (ModelNameEnum.ResNet50.getL2VectorName().equals(modelName)) {
           vectorCalculateDTO.setResnet50(vectorMap.get(modelName));
-        }else if (ModelNameEnum.CLIP.getCode().equals(modelName)) {
+        }else if (ModelNameEnum.CLIP.getL2VectorName().equals(modelName)) {
           vectorCalculateDTO.setClipVit(vectorMap.get(modelName));
-        }else if (ModelNameEnum.DenseNet121.getCode().equals(modelName)) {
+        }else if (ModelNameEnum.DenseNet121.getL2VectorName().equals(modelName)) {
           vectorCalculateDTO.setDenseNet121(vectorMap.get(modelName));
-        }else if (ModelNameEnum.SwinTransformer.getCode().equals(modelName)) {
+        }else if (ModelNameEnum.SwinTransformer.getL2VectorName().equals(modelName)) {
           vectorCalculateDTO.setSwinTransformer(vectorMap.get(modelName));
-        }else if (ModelNameEnum.DINOv2.getCode().equals(modelName)) {
+        }else if (ModelNameEnum.DINOv2.getL2VectorName().equals(modelName)) {
           vectorCalculateDTO.setDinoV2(vectorMap.get(modelName));
         }
       }

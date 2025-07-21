@@ -35,7 +35,8 @@ public class MilvusRecallService {
   @Resource
   private MilvusServiceClient imageMilvusClient;
 
-  private static final String param = "{\"nprobe\":10}";
+  //private static final String param = "{\"nprobe\":10}";
+  private static final String param = "{\"ef\":10}";
 
   public List<Map<String,Object>> recall(List<Float> vector,String model, VectorQueryTypeEnum queryType, String strategy) {
     List<Map<String,Object>> result =  Lists.newArrayList();
@@ -49,18 +50,7 @@ public class MilvusRecallService {
     }
 
     // 获取Collection名称
-    String collectionName = "resnet50_vectors";
-    if (ModelNameEnum.ResNet50.getCode().equals(model)) {
-      collectionName = "resnet50_vectors";
-    }else if (ModelNameEnum.DINOv2.getCode().equals(model)) {
-      collectionName = model+"_vectors";
-    }else if (ModelNameEnum.CLIP.getCode().equals(model)) {
-      collectionName = model+"_vectors";
-    }else if (ModelNameEnum.SwinTransformer.getCode().equals(model)) {
-      collectionName = model+"_vectors";
-    }else if (ModelNameEnum.DenseNet121.getCode().equals(model)) {
-      collectionName = model+"_vectors";
-    }
+    String collectionName = getCollectionName(model);
 
     // 获取策略
     List<String>  exprList = Lists.newArrayList();
@@ -130,6 +120,22 @@ public class MilvusRecallService {
     }
     log.info("milvus recall use {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     return result;
+  }
+
+  private static String getCollectionName(String model) {
+    String collectionName = "resnet50_vectors";
+    if (ModelNameEnum.ResNet50.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.ResNet50.getCollectionName();
+    }else if (ModelNameEnum.DINOv2.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.DINOv2.getCollectionName();
+    }else if (ModelNameEnum.CLIP.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.CLIP.getCollectionName();
+    }else if (ModelNameEnum.SwinTransformer.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.SwinTransformer.getCollectionName();
+    }else if (ModelNameEnum.DenseNet121.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.DenseNet121.getCollectionName();
+    }
+    return collectionName;
   }
 
 }

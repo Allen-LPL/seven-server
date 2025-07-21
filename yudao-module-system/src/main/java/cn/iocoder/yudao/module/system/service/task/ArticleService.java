@@ -65,6 +65,10 @@ public class ArticleService {
     return articleMapper.selectByIds(ids);
   }
 
+  public ArticleDO batchQueryById(Long ids){
+    return articleMapper.selectById(ids);
+  }
+
   public Long maxId(){
     return  articleMapper.getMaxId();
   }

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
@@ -14,6 +15,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
@@ -35,9 +37,6 @@ import org.springframework.stereotype.Service;
 public class ImgSimilarApiService {
 
   @Resource
-  private ImageTaskService imageTaskService;
-
-  @Resource
   private AdminUserService adminUserService;
 
   @Resource
@@ -52,12 +51,8 @@ public class ImgSimilarApiService {
   @Resource
   private SmallImageService smallImageService;
 
-  private static final String compare_url = "http://172.20.76.8:8087/compare_images";
-
-  @Value("${image.replace.prefix}")
-  private String replacePrefix;
-
-  private static final String local_prefix = "./task-file/";
+  @Resource
+  private TaskConfig taskConfig;
 
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
@@ -162,12 +157,12 @@ public class ImgSimilarApiService {
     }
 
     JSONObject params = new JSONObject();
-    params.put("smallImage",sourceSmallImageDO.getImagePath().replace(local_prefix, replacePrefix));
-    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath().replace(local_prefix, replacePrefix));
-    String path = "./task-file/"+ imgSimilarityDO.getTaskId() + "/comparePath/";
-    params.put("comparePath",path.replace(local_prefix, replacePrefix));
+    params.put("smallImage",sourceSmallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    String path = String.format(FilePathConstant.COMPARE_LOCAL_PATH, imgSimilarityDO.getTaskId());
+    params.put("comparePath",path.replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
     log.info("compare image params {}", params.toJSONString());
-    String result = HttpUtils.post(compare_url,null, params.toJSONString());
+    String result = HttpUtils.post(taskConfig.getCompareImageUrl(),null, params.toJSONString());
     log.info("compare image result: {}", result);
 
     if (StringUtils.isEmpty(result)){
@@ -189,8 +184,8 @@ public class ImgSimilarApiService {
 
     ImgSimilarityDO update = new ImgSimilarityDO();
     update.setId(id);
-    update.setDotImage(dotImage.replace(replacePrefix,local_prefix ));
-    update.setBlockImage(blockImage.replace(replacePrefix,local_prefix ));
+    update.setDotImage(dotImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
+    update.setBlockImage(blockImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
     imgSimilarityService.updateById(update);
 
     ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();

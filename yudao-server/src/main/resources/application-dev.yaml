@@ -244,3 +244,9 @@ milvus:
 image:
   replace:
     prefix: /data/yudao/task-file/
+  process:
+    url: http://172.20.76.8:8086/process_articles
+  compare:
+    url: http://172.20.76.8:8087/compare_images
+  classify:
+    url: http://172.20.76.8:8086/classify

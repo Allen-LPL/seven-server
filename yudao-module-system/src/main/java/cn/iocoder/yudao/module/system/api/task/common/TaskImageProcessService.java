@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageResponse;
 import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageResponse.LargeImage;
 import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageResponse.LargeImage.SmallImage;
 import cn.iocoder.yudao.module.system.api.task.utils.ImageBeanTransUtils;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgReportDO;
@@ -17,6 +18,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.enums.task.VectorQueryTypeEnum;
@@ -45,7 +47,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -76,18 +77,8 @@ public class TaskImageProcessService {
   @Resource
   private ImageTaskService imageTaskService;
 
-  private static final String LARGE_PATH = "%s%s/largeImage/";
-  private static final String SMALL_PATH = "%s%s/smallImage/";
-  private static final String local_prefix = "./task-file/";
-
-  private static final String DB_LARGE_PATH = "%sdb/%s/largeImage/";
-  private static final String DB_SMALL_PATH = "%sdb/%s/smallImage/";
-
-
-  private static final String url = "http://172.20.76.8:8086/process_articles";
-
-  @Value("${image.replace.prefix}")
-  private String replacePrefix;
+  @Resource
+  private TaskConfig taskConfig;
 
   @Resource
   private Executor taskExecutor;
@@ -136,9 +127,9 @@ public class TaskImageProcessService {
 
 
     // 2.调py接口：切割大图小图 & 小图向量化
-    List<ProcessImageRequest> request = ImageBeanTransUtils.getProcessImageRequests(taskId, articleDOList,replacePrefix,local_prefix,
-        LARGE_PATH, SMALL_PATH);
-    String response = HttpUtils.post(url,null, JSONObject.toJSONString(request));
+    List<ProcessImageRequest> request = ImageBeanTransUtils.getProcessImageRequests(taskId, articleDOList,taskConfig.getReplacePrefix(),
+        FilePathConstant.local_prefix, FilePathConstant.LARGE_PATH, FilePathConstant.SMALL_PATH);
+    String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
     Optional<String> resultStr = ImageBeanTransUtils.getImageCutResultStr(taskId, request, response);
     if (!resultStr.isPresent()) {
       return;
@@ -151,7 +142,8 @@ public class TaskImageProcessService {
       Long articleId = processImageResponse.getArticleId();
       List<LargeImage> largeImageList = processImageResponse.getLargeImageList();
       for (LargeImage largeImage : largeImageList) {
-        LargeImageDO largeImageDO = ImageBeanTransUtils.transLargeImageDO(largeImage,articleId,replacePrefix,local_prefix);
+        LargeImageDO largeImageDO = ImageBeanTransUtils.transLargeImageDO(largeImage,articleId,taskConfig.getReplacePrefix(),
+            FilePathConstant.local_prefix);
         largeImageDO.setCreator(String.valueOf(userId));
         largeImageDO.setIsSource(0);
         Integer number = largeImageService.insert(largeImageDO);
@@ -163,7 +155,8 @@ public class TaskImageProcessService {
         List<SmallImageDO> smallImageDOList = Lists.newArrayList();
         List<SmallImage> smallImageList = largeImage.getSmallImageList();
         for (SmallImage smallImage : smallImageList) {
-          SmallImageDO smallImageDO = ImageBeanTransUtils.transSmallImageDO(smallImage,articleId, largeImageDO.getId(),replacePrefix,local_prefix);
+          SmallImageDO smallImageDO = ImageBeanTransUtils.transSmallImageDO(smallImage,articleId, largeImageDO.getId(),
+              taskConfig.getReplacePrefix(), FilePathConstant.local_prefix);
           smallImageDO.setCreator(String.valueOf(userId));
           smallImageDO.setIsSource(0);
           smallImageDOList.add(smallImageDO);

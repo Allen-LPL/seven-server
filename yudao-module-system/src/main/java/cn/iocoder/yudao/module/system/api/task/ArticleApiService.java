@@ -98,7 +98,7 @@ public class ArticleApiService {
     List<String> filePathList = fileList.stream().map(FileContent::getFilePath).collect(Collectors.toList());
 
     // todo 五个库
-    String collectionName = ModelNameEnum.ResNet50.getCode()+"_vectors";
+    String collectionName = ModelNameEnum.ResNet50.getCollectionName();
     dbImageProcessService.processFileBatchAsync(filePathList, reqVO.getFileType(),collectionName);
 
     return CommonResult.success("success");

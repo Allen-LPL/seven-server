@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
@@ -68,8 +69,6 @@ public class ImageTaskApiService {
   @Resource
   private TaskImageProcessService imageProcessService;
 
-
-  private static final String UPLOAD_PATH = "./task-file/%s";
 
   public PageResult<ImageTaskQueryResDTO> query(ImageTaskQueryReqVO imageTaskQueryReqVO){
 
@@ -177,7 +176,7 @@ public class ImageTaskApiService {
     }
 
     // 任务ID
-    String filePath = String.format(UPLOAD_PATH, imageTaskDO.getId());
+    String filePath = String.format(FilePathConstant.UPLOAD_PATH, imageTaskDO.getId());
 
     // 上传文件
     MultipartFile[] files = reqVO.getFiles();

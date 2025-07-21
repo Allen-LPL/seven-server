@@ -42,6 +42,7 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -59,6 +60,12 @@ public class MilvusOperateService {
 
   @Resource
   private SmallImageService smallImageService;
+
+  @Value("${image.replace.prefix}")
+  private String replacePrefix;
+
+  private static final String local_prefix = "./task-file/";
+
 
   public void fullDump(String alias,Integer dimension){
     // 1.获取新旧collection名字
@@ -90,35 +97,21 @@ public class MilvusOperateService {
     collectionDelete(oldName);
   }
 
-  public void batchWriteDataFromFilePath(String newName){
-    String path = "/Users/fangliu/Documents/pdf";
-    File root = new File(path);
-    File[] files = root.listFiles();
-    if (files == null) return;
-
-    List<String> fileList = Lists.newArrayList();
-    for (File file : files) {
-      if (file.isDirectory()) {
-        continue;
-      }
-      if (file.getName().endsWith(".pdf")) {
-        fileList.add(file.getAbsolutePath());
+  public void writeSingleFile(String indexName, String filePath, String fileType){
+    if (StringUtils.isBlank(filePath) || StringUtils.isBlank(fileType) || StringUtils.isBlank(indexName)) {
+      return;
+    }
+    List<SmallImageMilvusDTO> smallImageMilvusDTOS =  dbImageProcessService.processFileSingle(filePath,fileType);
+    List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
+    for (SmallImageMilvusDTO smallImageMilvusDTO : smallImageMilvusDTOS) {
+      batchList.add(smallImageMilvusDTO);
+      if (batchList.size() >= 10) {
+        writeData(indexName, batchList);
+        batchList.clear();
       }
     }
-
-    for (String file : fileList) {
-      List<SmallImageMilvusDTO> smallImageMilvusDTOS =  dbImageProcessService.processFileSingle(file,"pdf");
-      List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
-      for (SmallImageMilvusDTO smallImageMilvusDTO : smallImageMilvusDTOS) {
-        batchList.add(smallImageMilvusDTO);
-        if (batchList.size() >= 10) {
-          writeData(newName, batchList);
-          batchList.clear();
-        }
-      }
-      if (!batchList.isEmpty()){
-        writeData(newName,batchList);
-      }
+    if (!batchList.isEmpty()){
+      writeData(indexName,batchList);
     }
   }
 
@@ -140,8 +133,8 @@ public class MilvusOperateService {
         for (SmallImageDO smallImageDO : smallImageDOList) {
           SmallImageMilvusDTO smallImageMilvusDTO = new SmallImageMilvusDTO();
           smallImageMilvusDTO.setId(smallImageDO.getId());
-          Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath());
-          List<Float> floatList = vectorMap.get(ModelNameEnum.ResNet50.getCode()).stream().map(Double::floatValue).collect(Collectors.toList());
+          Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath().replace(local_prefix,replacePrefix));
+          List<Float> floatList = vectorMap.get(ModelNameEnum.ResNet50.getL2VectorName()).stream().map(Double::floatValue).collect(Collectors.toList());
           smallImageMilvusDTO.setResnet50Vectors(floatList);
           smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());
           smallImageMilvusDTO.setSpecialty(articleDO.getMedicalSpecialty());
@@ -290,8 +283,9 @@ public class MilvusOperateService {
     CreateIndexParam vectorIndexCreateParam = CreateIndexParam.newBuilder()
         .withCollectionName(collectionName)
         .withFieldName(MilvusConstant.vectors)
-        .withIndexType(IndexType.IVF_FLAT)
-        .withMetricType(MetricType.IP)
+        //.withIndexType(IndexType.IVF_FLAT)
+        .withIndexType(IndexType.HNSW)
+        .withMetricType(MetricType.COSINE)
         .withExtraParam(MilvusConstant.params)
         .withSyncMode(Boolean.FALSE)
         .withIndexName(MilvusConstant.idx_image_vector)

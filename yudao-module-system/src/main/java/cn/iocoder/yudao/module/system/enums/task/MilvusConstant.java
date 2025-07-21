@@ -30,7 +30,10 @@ public class MilvusConstant {
 
   public static final String idx_image_vector = "idx_image_vector";
 
-  public static final String params = "{\"nlist\":1024,\"nprobe\":16}";
+  //public static final String params = "{\"nlist\":1024,\"nprobe\":16}";
+
+  public static final String params = "{\"M\":64,\"efConstruction\":200}";
+
 
 
   public static final String SCORE = "score";

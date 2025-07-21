@@ -22,9 +22,6 @@ public class ImgReportApiService {
   @Resource
   private ImgReportService imgReportService;
 
-  @Resource
-  private ImgSimilarityService imgSimilarityService;
-
   public CommonResult<PageResult<ImgReportQueryResVO>> pageQuery(ImgReportQueryReqVO reqVO){
     PageResult<ImgReportDO> imageDOPageResult =  imgReportService.pageResult(reqVO);
     PageResult<ImgReportQueryResVO> pageResult = BeanUtils.toBean(imageDOPageResult,ImgReportQueryResVO.class);

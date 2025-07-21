@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.system.api.task.common;
 
+import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
@@ -9,9 +10,11 @@ import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageResponse.LargeIma
 import cn.iocoder.yudao.module.system.api.task.dto.ProcessImageResponse.LargeImage.SmallImage;
 import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
 import cn.iocoder.yudao.module.system.api.task.utils.ImageBeanTransUtils;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
@@ -54,16 +57,8 @@ public class DbImageProcessService {
   @Resource
   private PdfParseService pdfParseService;
 
-
-  private static final String local_prefix = "./task-file/";
-  private static final String DB_LARGE_PATH = "%sdb/%s/largeImage/";
-  private static final String DB_SMALL_PATH = "%sdb/%s/smallImage/";
-
-
-  private static final String url = "http://172.20.76.8:8086/process_articles";
-
-  @Value("${image.replace.prefix}")
-  private String replacePrefix;
+  @Resource
+  private TaskConfig taskConfig;
 
   @Resource
   private Executor taskExecutor;
@@ -81,6 +76,57 @@ public class DbImageProcessService {
     for (String filePath : filePathList) {
       List<SmallImageMilvusDTO> smallImageMilvusDTOList = processFileSingle(filePath, fileType);
       milvusOperateService.writeData(collectionName,smallImageMilvusDTOList);
+    }
+  }
+
+  public void batchHandleFileList(String filePath, String fileType){
+    File root = new File(filePath);
+    File[] files = root.listFiles();
+    if (files == null) return;
+
+    List<String> fileList = Lists.newArrayList();
+    for (File file : files) {
+      if (file.isDirectory()) {
+        continue;
+      }
+      if (fileType.equals("pdf") && file.getName().endsWith(".pdf")) {
+        fileList.add(file.getAbsolutePath());
+      }else if (fileType.equals("image") && (file.getName().endsWith(".jpg") || file.getName().endsWith(".png"))) {
+        fileList.add(file.getAbsolutePath());
+      }
+    }
+
+    if (CollectionUtils.isAnyEmpty(fileList)){
+      log.warn("file Invalid , path {}",filePath);
+      return;
+    }
+
+    for (String file : fileList) {
+      processFileSingle(file,fileType);
+    }
+  }
+
+  public void batchHandleFileList(List<String> filePathList, String fileType){
+    List<String> fileList = Lists.newArrayList();
+    for (String filePath : filePathList) {
+      File file = new File(filePath);
+      if (file.isDirectory()) {
+        continue;
+      }
+      if (fileType.equals("pdf") && file.getName().endsWith(".pdf")) {
+        fileList.add(file.getAbsolutePath());
+      }else if (fileType.equals("image") && (file.getName().endsWith(".jpg") || file.getName().endsWith(".png"))) {
+        fileList.add(file.getAbsolutePath());
+      }
+    }
+
+    if (CollectionUtils.isAnyEmpty(fileList)){
+      log.warn("file Invalid ");
+      return;
+    }
+
+    for (String file : fileList) {
+      processFileSingle(file,fileType);
     }
   }
 
@@ -114,7 +160,7 @@ public class DbImageProcessService {
 
     // 3.调py接口：切割大图小图 & 小图向量化
     List<ProcessImageRequest> request = getProcessImageRequests(articleDO);
-    String response = HttpUtils.post(url,null, JSONObject.toJSONString(request));
+    String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
     log.info(response);
     Optional<String> resultStr = getImageCutResultStr(response,articleDO.getId());
     if (!resultStr.isPresent() || StringUtils.isBlank(resultStr.get())){
@@ -128,7 +174,8 @@ public class DbImageProcessService {
       Long articleId = processImageResponse.getArticleId();
       List<LargeImage> largeImageList = processImageResponse.getLargeImageList();
       for (LargeImage largeImage : largeImageList) {
-        LargeImageDO largeImageDO = ImageBeanTransUtils.transLargeImageDO(largeImage,articleId,replacePrefix,local_prefix);
+        LargeImageDO largeImageDO = ImageBeanTransUtils.transLargeImageDO(largeImage,articleId, taskConfig.getReplacePrefix(),
+            FilePathConstant.local_prefix);
         Integer number = largeImageService.insert(largeImageDO);
         if (Objects.isNull(number) || number <= 0) {
           log.error("写入失败");
@@ -138,7 +185,8 @@ public class DbImageProcessService {
         List<SmallImageDO> smallImageDOList = Lists.newArrayList();
         List<SmallImage> smallImageList = largeImage.getSmallImageList();
         for (SmallImage smallImage : smallImageList) {
-          smallImageDOList.add(ImageBeanTransUtils.transSmallImageDO(smallImage,articleId, largeImageDO.getId(),replacePrefix,local_prefix));
+          smallImageDOList.add(ImageBeanTransUtils.transSmallImageDO(smallImage,articleId, largeImageDO.getId(), taskConfig.getReplacePrefix(),
+              FilePathConstant.local_prefix));
         }
         Boolean flag = smallImageService.batchSave(smallImageDOList);
         if (!flag) {
@@ -163,13 +211,37 @@ public class DbImageProcessService {
       String vectorPath = smallImageMilvusDTO.getVectorPath();
       Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(vectorPath);
       for(String modelName : vectorMap.keySet()) {
-        if (modelName.equals(ModelNameEnum.ResNet50.getCode())){
+        if (modelName.equals(ModelNameEnum.ResNet50.getL2VectorName())){
           List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
           smallImageMilvusDTO.setResnet50Vectors(floatList);
         }
       }
     }
     return allSmallList;
+  }
+
+  public void batchRepeatHandleImage(List<Long> articleIdList){
+    for (Long articleId : articleIdList) {
+      repeatProcessFileSingle(articleId);
+    }
+  }
+
+  public void repeatProcessFileSingle(Long articleId) {
+    ArticleDO articleDO = articleService.batchQueryById(articleId);
+    if(Objects.isNull(articleDO)){
+      return;
+    }
+
+    // 3.调py接口：切割大图小图 & 小图向量化
+    try {
+      List<ProcessImageRequest> request = getProcessImageRequests(articleDO);
+      String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
+      log.info(response);
+      Optional<String> resultStr = getImageCutResultStr(response,articleDO.getId());
+      log.info("resultStr : {}", resultStr);
+    }catch (Exception e){
+      log.error("repeat process file single error.", e);
+    }
   }
 
   private Optional<String> getImageCutResultStr(String response, Long articleId){
@@ -198,8 +270,8 @@ public class DbImageProcessService {
     imageRequest.setArticleId(articleDO.getId());
     imageRequest.setFilePath(articleDO.getFilePath());
     imageRequest.setFileType(articleDO.getFileType());
-    imageRequest.setLargePrefixPath(String.format(DB_LARGE_PATH,replacePrefix, articleDO.getId()));
-    imageRequest.setSmallPrefixPath(String.format(DB_SMALL_PATH,replacePrefix, articleDO.getId()));
+    imageRequest.setLargePrefixPath(String.format(FilePathConstant.DB_LARGE_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
+    imageRequest.setSmallPrefixPath(String.format(FilePathConstant.DB_SMALL_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
     request.add(imageRequest);
     return request;
   }

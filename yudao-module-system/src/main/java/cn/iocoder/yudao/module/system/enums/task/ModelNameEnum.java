@@ -23,20 +23,25 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum ModelNameEnum {
 
+        //Resnet50
+    //ResNet50("ResNet50", 2048, 0.99993),
 
-    ResNet50("ResNet50", 2048, 0.99993),
+    ResNet50("resnet50","ResNet50_original","ResNet50_L2","resnet50_vectors", 2048, 0.99993),
 
-    DINOv2("DINOv2", 384, 0.965),
+    DINOv2("din0v2","DINOv2_original","DINOv2_L2", "dinov2_vectors",384, 0.965),
 
-    CLIP("CLIP", 768, 0.965),
+    CLIP("clip","CLIP_original","CLIP_L2","clip_vectors", 768, 0.965),
 
-    DenseNet121("DenseNet121", 1024, 0.88),
+    DenseNet121("densenet121","DenseNet121_original", "DenseNet121_L2", "densenet121_vectors",1024, 0.88),
 
-    SwinTransformer("SwinTransformer", 768, 0.92),
+    SwinTransformer("swin_transformer","SwinTransformer_original","SwinTransformer_L2", "swintransformer_vectors",768, 0.92),
 
     ;
 
     private final String code;
+    private final String origVectorName;
+    private final String l2VectorName;
+    private final String collectionName;
     private final Integer dim;
     private final Double score;
 
