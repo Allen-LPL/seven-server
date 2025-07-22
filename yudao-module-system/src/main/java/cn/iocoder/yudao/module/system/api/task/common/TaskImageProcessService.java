@@ -208,7 +208,7 @@ public class TaskImageProcessService {
       }
     }
 
-    // 更新任务状态为算法检测中
+    // 更新任务状态为专家审核
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();
     updateImageTaskStatus.setId(taskId);
     updateImageTaskStatus.setTaskStatus(TaskStatusEnum.EXPERT_REVIEW.getCode());
@@ -222,9 +222,11 @@ public class TaskImageProcessService {
   private String getReportName(){
     try {
       AdminUserDO userDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
-      String userName = userDO.getUsername();
-      String date = LocalDateTimeUtil.format(LocalDateTime.now(), DatePattern.PURE_DATE_PATTERN);
-      return StrUtil.format("{}_{}",userName,date);
+      if (Objects.nonNull(userDO)){
+        String userName = userDO.getUsername();
+        String date = LocalDateTimeUtil.format(LocalDateTime.now(), DatePattern.PURE_DATE_PATTERN);
+        return StrUtil.format("{}_{}",userName,date);
+      }
     }catch (Exception e){
       log.error("getReportName error: ",e);
     }

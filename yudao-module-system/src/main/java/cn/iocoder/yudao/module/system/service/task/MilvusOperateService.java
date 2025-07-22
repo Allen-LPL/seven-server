@@ -3,8 +3,10 @@ package cn.iocoder.yudao.module.system.service.task;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.task.utils.CsvReadVectorUtils;
@@ -61,10 +63,8 @@ public class MilvusOperateService {
   @Resource
   private SmallImageService smallImageService;
 
-  @Value("${image.replace.prefix}")
-  private String replacePrefix;
-
-  private static final String local_prefix = "./task-file/";
+  @Resource
+  private TaskConfig taskConfig;
 
 
   public void fullDump(String alias,Integer dimension){
@@ -118,8 +118,8 @@ public class MilvusOperateService {
   public void batchWriteDataFromDb(String newName){
     //Long maxId = articleService.maxId();
     //Long minId = articleService.minId();
-    Long maxId = 311L;
-    Long minId = 277L;
+    Long maxId = 377L;
+    Long minId = 355L;
     int batch = 10;
     while (true){
       List<ArticleDO> articleDOList = articleService.queryByIdsBatch(minId,maxId,batch);
@@ -133,7 +133,8 @@ public class MilvusOperateService {
         for (SmallImageDO smallImageDO : smallImageDOList) {
           SmallImageMilvusDTO smallImageMilvusDTO = new SmallImageMilvusDTO();
           smallImageMilvusDTO.setId(smallImageDO.getId());
-          Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath().replace(local_prefix,replacePrefix));
+          Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath()
+              .replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
           List<Float> floatList = vectorMap.get(ModelNameEnum.ResNet50.getL2VectorName()).stream().map(Double::floatValue).collect(Collectors.toList());
           smallImageMilvusDTO.setResnet50Vectors(floatList);
           smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());

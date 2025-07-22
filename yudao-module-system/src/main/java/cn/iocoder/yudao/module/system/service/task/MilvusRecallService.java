@@ -36,21 +36,21 @@ public class MilvusRecallService {
   private MilvusServiceClient imageMilvusClient;
 
   //private static final String param = "{\"nprobe\":10}";
-  private static final String param = "{\"ef\":10}";
+  private static final String param = "{\"ef\":64}";
 
-  public List<Map<String,Object>> recall(List<Float> vector,String model, VectorQueryTypeEnum queryType, String strategy) {
+  public List<Map<String,Object>> recall(List<Float> vector,String collectionName, VectorQueryTypeEnum queryType, String strategy) {
     List<Map<String,Object>> result =  Lists.newArrayList();
 
     // 获取metric type
     MetricType metricType = MetricType.COSINE;
-    if (Objects.equals(VectorQueryTypeEnum.L2 , queryType)) {
-      metricType = MetricType.L2;
-    }else if (Objects.equals(VectorQueryTypeEnum.IP , queryType)) {
-      metricType = MetricType.IP;
-    }
+//    if (Objects.equals(VectorQueryTypeEnum.L2 , queryType)) {
+//      metricType = MetricType.L2;
+//    }else if (Objects.equals(VectorQueryTypeEnum.IP , queryType)) {
+//      metricType = MetricType.IP;
+//    }
 
     // 获取Collection名称
-    String collectionName = getCollectionName(model);
+    //String collectionName = getCollectionName(model);
 
     // 获取策略
     List<String>  exprList = Lists.newArrayList();

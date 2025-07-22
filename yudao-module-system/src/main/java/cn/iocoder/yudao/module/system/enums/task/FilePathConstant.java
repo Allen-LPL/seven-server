@@ -4,6 +4,8 @@ public class FilePathConstant {
 
   public static final String local_prefix = "./task-file/";
 
+  public static final String DB_PATH = "%sdb/%s/";
+
   public static final String DB_LARGE_PATH = "%sdb/%s/largeImage/";
 
   public static final String DB_SMALL_PATH = "%sdb/%s/smallImage/";

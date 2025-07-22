@@ -7,7 +7,11 @@ import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.config.TaskConfig;
+import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultFeaturePointsDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultImageTypeDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultModelDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarDefaultResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
@@ -15,7 +19,10 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.enums.task.FeaturePointsEnum;
 import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
+import cn.iocoder.yudao.module.system.enums.task.ImageTypeEnum;
+import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
@@ -28,6 +35,7 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -96,6 +104,8 @@ public class ImgSimilarApiService {
       if (Objects.nonNull(targetSmall)) {
         imgSimilarQueryResVO.setTargetSmallImagePath(targetSmall.getImagePath());
       }
+
+      imgSimilarQueryResVO.setSimilarityScore(imgSimilarQueryResVO.getSimilarityScore()*100);
     }
     return pageResult;
   }
@@ -219,5 +229,39 @@ public class ImgSimilarApiService {
       return CommonResult.error(500, "删除审核意见失败，请联系管理员");
     }
     return CommonResult.success("删除审核意见成功");
+  }
+
+  public CommonResult<ImgSimilarDefaultResVO> queryDefault() {
+    ImgSimilarDefaultResVO resVO = new ImgSimilarDefaultResVO();
+    // 算法
+    List<DefaultModelDTO> defaultModelDTOList = Lists.newArrayList();
+    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+      DefaultModelDTO defaultModelDTO = new DefaultModelDTO();
+      defaultModelDTO.setName(modelNameEnum.getCode());
+      defaultModelDTO.setScore(modelNameEnum.getScore());
+      defaultModelDTOList.add(defaultModelDTO);
+    }
+    resVO.setDefaultModelList(defaultModelDTOList);
+
+    // 图像分类
+    List<DefaultImageTypeDTO> imageTypeDTOS = Lists.newArrayList();
+    for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
+      DefaultImageTypeDTO defaultImageTypeDTO = new DefaultImageTypeDTO();
+      defaultImageTypeDTO.setCode(imageTypeEnum.getCode());
+      defaultImageTypeDTO.setName(imageTypeEnum.getDesc());
+      imageTypeDTOS.add(defaultImageTypeDTO);
+    }
+    resVO.setDefaultImageTypeList(imageTypeDTOS);
+
+    // 特征点
+    List<DefaultFeaturePointsDTO> featurePointsDTOS = Lists.newArrayList();
+    for (FeaturePointsEnum featurePointsEnum: FeaturePointsEnum.values()){
+      DefaultFeaturePointsDTO defaultFeaturePointsDTO = new DefaultFeaturePointsDTO();
+      defaultFeaturePointsDTO.setName(featurePointsEnum.getCode());
+      defaultFeaturePointsDTO.setValue(featurePointsEnum.getThreshold());
+      featurePointsDTOS.add(defaultFeaturePointsDTO);
+    }
+    resVO.setDefaultFeaturePointsList(featurePointsDTOS);
+    return CommonResult.success(resVO);
   }
 }

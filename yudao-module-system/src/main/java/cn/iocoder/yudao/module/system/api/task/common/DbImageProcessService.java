@@ -25,6 +25,7 @@ import cn.iocoder.yudao.module.system.service.task.PdfParseService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import cn.iocoder.yudao.module.system.service.task.VectorQueryService;
 import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
+import cn.iocoder.yudao.module.system.util.FileWriterUtils;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import java.io.File;
@@ -79,7 +80,7 @@ public class DbImageProcessService {
     }
   }
 
-  public void batchHandleFileList(String filePath, String fileType){
+  public void batchHandleFileParentDirectory(String filePath, String fileType){
     File root = new File(filePath);
     File[] files = root.listFiles();
     if (files == null) return;
@@ -158,6 +159,15 @@ public class DbImageProcessService {
     }
     articleService.create(articleDO);
 
+    // 0.上传文件
+    String targetPath = String.format(FilePathConstant.DB_PATH, taskConfig.getReplacePrefix(), articleDO.getId())+pdfFile.getName();
+    FileWriterUtils.copyFile(filePath, targetPath);
+    articleDO.setFilePath(targetPath);
+    ArticleDO updateArticle = new ArticleDO();
+    updateArticle.setId(articleDO.getId());
+    updateArticle.setFilePath(targetPath.replace(taskConfig.getReplacePrefix(), FilePathConstant.local_prefix));
+    articleService.update(updateArticle);
+
     // 3.调py接口：切割大图小图 & 小图向量化
     List<ProcessImageRequest> request = getProcessImageRequests(articleDO);
     String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
@@ -209,7 +219,8 @@ public class DbImageProcessService {
     // 向量入库
     for (SmallImageMilvusDTO smallImageMilvusDTO : allSmallList) {
       String vectorPath = smallImageMilvusDTO.getVectorPath();
-      Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(vectorPath);
+      Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(vectorPath.replace(FilePathConstant.local_prefix,
+          taskConfig.getReplacePrefix()));
       for(String modelName : vectorMap.keySet()) {
         if (modelName.equals(ModelNameEnum.ResNet50.getL2VectorName())){
           List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
@@ -268,7 +279,7 @@ public class DbImageProcessService {
     List<ProcessImageRequest> request = Lists.newArrayList();
     ProcessImageRequest imageRequest = new ProcessImageRequest();
     imageRequest.setArticleId(articleDO.getId());
-    imageRequest.setFilePath(articleDO.getFilePath());
+    imageRequest.setFilePath(articleDO.getFilePath().replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
     imageRequest.setFileType(articleDO.getFileType());
     imageRequest.setLargePrefixPath(String.format(FilePathConstant.DB_LARGE_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
     imageRequest.setSmallPrefixPath(String.format(FilePathConstant.DB_SMALL_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));

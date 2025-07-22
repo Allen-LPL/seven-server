@@ -71,16 +71,20 @@ public class VectorQueryService {
         if (ModelNameEnum.ResNet50.getL2VectorName().equals(modelName)) {
           log.info("start vector recall: {}", vectorPath);
           List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
-          List<Map<String,Object>> resultList = milvusRecallService.recall(floatList, modelName, queryType, strategyConfig);
+          List<Map<String,Object>> resultList = milvusRecallService.recall(floatList, ModelNameEnum.ResNet50.getCollectionName(), queryType, strategyConfig);
           log.info("end vector resultList: {}", JSONObject.toJSONString(resultList));
           for (Map<String,Object> imageIdScoreMap : resultList) {
+            Double similarScore = MapUtils.getDoubleValue(imageIdScoreMap, MilvusConstant.SCORE,0.0f);
+            if (similarScore < ModelNameEnum.ResNet50.getScore()){
+              continue;
+            }
             ImgSimilarityDO imgSimilarityDO = new ImgSimilarityDO();
             imgSimilarityDO.setTaskId(taskId);
             imgSimilarityDO.setAlgorithmName(modelName);
             imgSimilarityDO.setSourceArticleId(smallImageDO.getArticleId());
             imgSimilarityDO.setSourceLargeImageId(smallImageDO.getLargeImageId());
             imgSimilarityDO.setSourceSmallImageId(smallImageDO.getId());
-            imgSimilarityDO.setSimilarityScore(MapUtils.getDoubleValue(imageIdScoreMap, MilvusConstant.SCORE,0.0f));
+            imgSimilarityDO.setSimilarityScore(similarScore);
             Long targetSmallImageId = MapUtils.getLong(imageIdScoreMap, MilvusConstant.imageId,0L);
             imgSimilarityDO.setTargetSmallImageId(targetSmallImageId);
             imgSimilarityDO.setCreator(String.valueOf(userId));

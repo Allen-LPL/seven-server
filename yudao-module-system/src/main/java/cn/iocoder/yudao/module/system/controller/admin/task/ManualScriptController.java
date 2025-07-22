@@ -3,9 +3,11 @@ package cn.iocoder.yudao.module.system.controller.admin.task;
 
 import cn.iocoder.yudao.framework.common.exception.ErrorCode;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.ManualProcessFileVO;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
+import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.MilvusOperateService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -29,6 +31,9 @@ public class ManualScriptController {
 
   @Resource
   private DbImageProcessService dbImageProcessService;
+
+  @Resource
+  private ArticleService articleService;
 
   @GetMapping("/dump/milvus/{alias}/{length}")
   public CommonResult<String> dumpMilvus(@PathVariable String alias, @PathVariable Integer length) {
@@ -71,7 +76,7 @@ public class ManualScriptController {
   @GetMapping("/only/processFile/{path}/{type}")
   public CommonResult<String> onlyProcessFile(@PathVariable String path, @PathVariable String type) {
     try {
-      dbImageProcessService.batchHandleFileList(path,type);
+      dbImageProcessService.batchHandleFileParentDirectory(path,type);
       return CommonResult.success("success");
     }catch (Exception e) {
       log.error("processFile error: ，",e);
@@ -79,7 +84,7 @@ public class ManualScriptController {
     }
   }
 
-  @GetMapping("/repeat/processFile")
+  @PostMapping("/repeat/processFile")
   public CommonResult<String> repeatProcessFile(@RequestBody List<Long> articleIdList) {
     try {
       dbImageProcessService.batchRepeatHandleImage(articleIdList);
@@ -97,6 +102,38 @@ public class ManualScriptController {
       return CommonResult.success("success");
     }catch (Exception e) {
       log.error("processFile error: ，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @GetMapping("/repeat/handleAllFile")
+  public CommonResult<String> handleAllFile() {
+    try {
+      TenantContextHolder.setTenantId(1L);
+      Long maxId = articleService.maxId();
+      Long minId = articleService.minId();
+      for (Long articleId = minId; articleId <= maxId; articleId++) {
+        dbImageProcessService.repeatProcessFileSingle(articleId);
+      }
+      return CommonResult.success("success");
+    }catch (Exception e) {
+      log.error("repeat processFile error: ，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @GetMapping("/repeat/handleDbFile")
+  public CommonResult<String> handleDbFile() {
+    try {
+      TenantContextHolder.setTenantId(1L);
+      Long maxId = 311L;
+      Long minId = 277L;
+      for (Long articleId = minId; articleId <= maxId; articleId++) {
+        dbImageProcessService.repeatProcessFileSingle(articleId);
+      }
+      return CommonResult.success("success");
+    }catch (Exception e) {
+      log.error("repeat processFile error: ，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }

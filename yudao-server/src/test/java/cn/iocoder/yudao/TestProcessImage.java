@@ -64,8 +64,8 @@ public class TestProcessImage {
   @Test
   public void repeatHandleDbImage(){
     TenantContextHolder.setTenantId(1L);
-    Long maxId = 311L;
-    Long minId = 293L;
+    Long maxId = 377L;
+    Long minId = 355L;
     for (Long articleId = minId; articleId <= maxId; articleId++) {
       dbImageProcessService.repeatProcessFileSingle(articleId);
     }
@@ -79,6 +79,14 @@ public class TestProcessImage {
     for (Long articleId = minId; articleId <= maxId; articleId++) {
       dbImageProcessService.repeatProcessFileSingle(articleId);
     }
+  }
+
+  @Test
+  public void repeatHandleArticle(){
+    TenantContextHolder.setTenantId(1L);
+    String filePath = "/Users/fangliu/Documents/pdf/";
+    String fileType = "pdf";
+    dbImageProcessService.batchHandleFileParentDirectory(filePath,fileType);
   }
 
 }
