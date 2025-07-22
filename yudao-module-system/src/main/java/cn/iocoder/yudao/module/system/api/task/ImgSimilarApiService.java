@@ -1,63 +1,48 @@
 package cn.iocoder.yudao.module.system.api.task;
 
-import cn.hutool.core.date.DatePattern;
-import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
-import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
-import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
-import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
-import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
-import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
+import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultFeaturePointsDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultImageTypeDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultModelDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarDefaultResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCommentReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
-import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
-import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
-import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
-import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
-import cn.iocoder.yudao.module.system.service.dept.DeptService;
+import cn.iocoder.yudao.module.system.enums.task.FeaturePointsEnum;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
+import cn.iocoder.yudao.module.system.enums.task.ImageTypeEnum;
+import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
-import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
-import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
 public class ImgSimilarApiService {
-
-  @Resource
-  private ImageTaskService imageTaskService;
 
   @Resource
   private AdminUserService adminUserService;
@@ -74,7 +59,9 @@ public class ImgSimilarApiService {
   @Resource
   private SmallImageService smallImageService;
 
-  private static final String compare_url = "http://172.20.76.8:8087/compare_images";
+  @Resource
+  private TaskConfig taskConfig;
+
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
 
@@ -117,6 +104,8 @@ public class ImgSimilarApiService {
       if (Objects.nonNull(targetSmall)) {
         imgSimilarQueryResVO.setTargetSmallImagePath(targetSmall.getImagePath());
       }
+
+      imgSimilarQueryResVO.setSimilarityScore(imgSimilarQueryResVO.getSimilarityScore()*100);
     }
     return pageResult;
   }
@@ -178,11 +167,12 @@ public class ImgSimilarApiService {
     }
 
     JSONObject params = new JSONObject();
-    params.put("smallImage",sourceSmallImageDO.getImagePath());
-    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath());
-    String path = "./task-file/"+ imgSimilarityDO.getTaskId() + "/comparePath/";
-    params.put("comparePath",path);
-    String result = HttpUtils.post(compare_url,null, params.toJSONString());
+    params.put("smallImage",sourceSmallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    params.put("duplicateSmallImage",targetSmallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    String path = String.format(FilePathConstant.COMPARE_LOCAL_PATH, imgSimilarityDO.getTaskId());
+    params.put("comparePath",path.replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    log.info("compare image params {}", params.toJSONString());
+    String result = HttpUtils.post(taskConfig.getCompareImageUrl(),null, params.toJSONString());
     log.info("compare image result: {}", result);
 
     if (StringUtils.isEmpty(result)){
@@ -204,8 +194,8 @@ public class ImgSimilarApiService {
 
     ImgSimilarityDO update = new ImgSimilarityDO();
     update.setId(id);
-    update.setDotImage(dotImage);
-    update.setBlockImage(blockImage);
+    update.setDotImage(dotImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
+    update.setBlockImage(blockImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
     imgSimilarityService.updateById(update);
 
     ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
@@ -239,5 +229,39 @@ public class ImgSimilarApiService {
       return CommonResult.error(500, "删除审核意见失败，请联系管理员");
     }
     return CommonResult.success("删除审核意见成功");
+  }
+
+  public CommonResult<ImgSimilarDefaultResVO> queryDefault() {
+    ImgSimilarDefaultResVO resVO = new ImgSimilarDefaultResVO();
+    // 算法
+    List<DefaultModelDTO> defaultModelDTOList = Lists.newArrayList();
+    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+      DefaultModelDTO defaultModelDTO = new DefaultModelDTO();
+      defaultModelDTO.setName(modelNameEnum.getCode());
+      defaultModelDTO.setScore(modelNameEnum.getScore());
+      defaultModelDTOList.add(defaultModelDTO);
+    }
+    resVO.setDefaultModelList(defaultModelDTOList);
+
+    // 图像分类
+    List<DefaultImageTypeDTO> imageTypeDTOS = Lists.newArrayList();
+    for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
+      DefaultImageTypeDTO defaultImageTypeDTO = new DefaultImageTypeDTO();
+      defaultImageTypeDTO.setCode(imageTypeEnum.getCode());
+      defaultImageTypeDTO.setName(imageTypeEnum.getDesc());
+      imageTypeDTOS.add(defaultImageTypeDTO);
+    }
+    resVO.setDefaultImageTypeList(imageTypeDTOS);
+
+    // 特征点
+    List<DefaultFeaturePointsDTO> featurePointsDTOS = Lists.newArrayList();
+    for (FeaturePointsEnum featurePointsEnum: FeaturePointsEnum.values()){
+      DefaultFeaturePointsDTO defaultFeaturePointsDTO = new DefaultFeaturePointsDTO();
+      defaultFeaturePointsDTO.setName(featurePointsEnum.getCode());
+      defaultFeaturePointsDTO.setValue(featurePointsEnum.getThreshold());
+      featurePointsDTOS.add(defaultFeaturePointsDTO);
+    }
+    resVO.setDefaultFeaturePointsList(featurePointsDTOS);
+    return CommonResult.success(resVO);
   }
 }

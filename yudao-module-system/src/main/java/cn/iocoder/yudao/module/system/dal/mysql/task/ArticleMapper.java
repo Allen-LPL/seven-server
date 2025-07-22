@@ -5,6 +5,7 @@ import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
@@ -19,6 +20,22 @@ public interface ArticleMapper extends BaseMapperX<ArticleDO> {
         .likeIfPresent(ArticleDO::getArticleJournal, reqVO.getArticleJournal())
         .betweenIfPresent(ArticleDO::getCreateTime, reqVO.getStartTime(), reqVO.getEndTime())
         .orderByDesc(ArticleDO::getCreateTime,ArticleDO::getUpdateTime));
+  }
+
+  default Long getMaxId(){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.eq("deleted",0);
+    queryWrapper.orderByDesc("id");
+    queryWrapper.last("limit 1");
+    return selectOne(queryWrapper).getId();
+  }
+
+  default Long getMinId(){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.eq("deleted",0);
+    queryWrapper.orderByAsc("id");
+    queryWrapper.last("limit 1");
+    return selectOne(queryWrapper).getId();
   }
 
 }

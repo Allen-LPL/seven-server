@@ -1,17 +1,21 @@
 package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
+import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
+import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
+import cn.iocoder.yudao.module.system.service.task.utils.CsvReadVectorUtils;
 import com.google.common.collect.Lists;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
-import io.milvus.grpc.DescribeAliasResponse;
 import io.milvus.grpc.DescribeCollectionResponse;
 import io.milvus.grpc.GetCollectionStatisticsResponse;
 import io.milvus.grpc.KeyValuePair;
-import io.milvus.grpc.ListAliasesResponse;
 import io.milvus.grpc.MutationResult;
 import io.milvus.param.IndexType;
 import io.milvus.param.MetricType;
@@ -19,8 +23,6 @@ import io.milvus.param.R;
 import io.milvus.param.RpcStatus;
 import io.milvus.param.alias.AlterAliasParam;
 import io.milvus.param.alias.CreateAliasParam;
-import io.milvus.param.alias.ListAliasesParam;
-import io.milvus.param.bulkinsert.BulkInsertParam;
 import io.milvus.param.collection.CollectionSchemaParam;
 import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.DescribeCollectionParam;
@@ -33,17 +35,17 @@ import io.milvus.param.collection.ReleaseCollectionParam;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.dml.InsertParam.Field;
 import io.milvus.param.index.CreateIndexParam;
-import io.milvus.v2.service.utility.request.DescribeAliasReq;
-import io.milvus.v2.service.utility.response.DescribeAliasResp;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.s3.endpoints.internal.Value.Str;
 
 @Service
 @Slf4j
@@ -53,7 +55,17 @@ public class MilvusOperateService {
   private MilvusServiceClient imageMilvusClient;
 
   @Resource
-  private ImageProcessService imageProcessService;
+  private DbImageProcessService dbImageProcessService;
+
+  @Resource
+  private ArticleService articleService;
+
+  @Resource
+  private SmallImageService smallImageService;
+
+  @Resource
+  private TaskConfig taskConfig;
+
 
   public void fullDump(String alias,Integer dimension){
     // 1.获取新旧collection名字
@@ -72,11 +84,12 @@ public class MilvusOperateService {
     createScalarIndex(newName);
 
     // 4.写入数据
-    batchWriteData(newName);
+    //batchWriteDataFromFilePath(newName);
+    batchWriteDataFromDb(newName);
 
     // 5.切换别名
     renameAliasToRealCollection(newName,oldName, alias);
-    loadCollection(alias);
+    loadCollection(newName);
     log.info("old doc count : {}, new doc count : {}",collectionDocCount(oldName), collectionDocCount(newName));
 
     // 6.删除旧索引
@@ -84,38 +97,64 @@ public class MilvusOperateService {
     collectionDelete(oldName);
   }
 
-  public void batchWriteData(String newName){
-    String path = "/Users/fangliu/Documents/pdf";
-    File root = new File(path);
-    File[] files = root.listFiles();
-    if (files == null) return;
-
-    List<String> fileList = Lists.newArrayList();
-    for (File file : files) {
-      if (file.isDirectory()) {
-        continue;
-      }
-      if (file.getName().endsWith(".pdf")) {
-        fileList.add(file.getAbsolutePath());
+  public void writeSingleFile(String indexName, String filePath, String fileType){
+    if (StringUtils.isBlank(filePath) || StringUtils.isBlank(fileType) || StringUtils.isBlank(indexName)) {
+      return;
+    }
+    List<SmallImageMilvusDTO> smallImageMilvusDTOS =  dbImageProcessService.processFileSingle(filePath,fileType);
+    List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
+    for (SmallImageMilvusDTO smallImageMilvusDTO : smallImageMilvusDTOS) {
+      batchList.add(smallImageMilvusDTO);
+      if (batchList.size() >= 10) {
+        writeData(indexName, batchList);
+        batchList.clear();
       }
     }
+    if (!batchList.isEmpty()){
+      writeData(indexName,batchList);
+    }
+  }
 
-    for (String file : fileList) {
-      List<SmallImageMilvusDTO> smallImageMilvusDTOS =  imageProcessService.processFile(file);
-      List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
-      for (SmallImageMilvusDTO smallImageMilvusDTO : smallImageMilvusDTOS) {
-        batchList.add(smallImageMilvusDTO);
-        if (batchList.size() >= 10) {
-          writeData(newName, batchList);
-          batchList.clear();
+  public void batchWriteDataFromDb(String newName){
+    //Long maxId = articleService.maxId();
+    //Long minId = articleService.minId();
+    Long maxId = 377L;
+    Long minId = 355L;
+    int batch = 10;
+    while (true){
+      List<ArticleDO> articleDOList = articleService.queryByIdsBatch(minId,maxId,batch);
+      if (org.apache.commons.collections4.CollectionUtils.isEmpty(articleDOList) || minId >= maxId){
+        break;
+      }
+
+      for (ArticleDO articleDO : articleDOList) {
+        List<SmallImageMilvusDTO> batchList = Lists.newArrayList();
+        List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(articleDO.getId());
+        for (SmallImageDO smallImageDO : smallImageDOList) {
+          SmallImageMilvusDTO smallImageMilvusDTO = new SmallImageMilvusDTO();
+          smallImageMilvusDTO.setId(smallImageDO.getId());
+          Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath()
+              .replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
+          List<Float> floatList = vectorMap.get(ModelNameEnum.ResNet50.getL2VectorName()).stream().map(Double::floatValue).collect(Collectors.toList());
+          smallImageMilvusDTO.setResnet50Vectors(floatList);
+          smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());
+          smallImageMilvusDTO.setSpecialty(articleDO.getMedicalSpecialty());
+          smallImageMilvusDTO.setArticleDate(articleDO.getArticleDate());
+          smallImageMilvusDTO.setArticleId(articleDO.getId());
+          smallImageMilvusDTO.setInstitution(articleDO.getAuthorInstitution());
+          smallImageMilvusDTO.setKeywords(articleDO.getArticleKeywords());
+          batchList.add(smallImageMilvusDTO);
+        }
+        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(batchList)){
+          writeData(newName,batchList);
         }
       }
-      if (!batchList.isEmpty()){
-        writeData(newName,batchList);
-      }
-    }
 
+      log.info("completeOfflineLabels min : {}, max :{}",minId,maxId);
+      minId = articleDOList.get(articleDOList.size()-1).getId();
+    }
   }
+
 
   public void  writeData(String newName, List<SmallImageMilvusDTO> smallImageMilvusDTOS){
 
@@ -245,8 +284,9 @@ public class MilvusOperateService {
     CreateIndexParam vectorIndexCreateParam = CreateIndexParam.newBuilder()
         .withCollectionName(collectionName)
         .withFieldName(MilvusConstant.vectors)
-        .withIndexType(IndexType.IVF_FLAT)
-        .withMetricType(MetricType.IP)
+        //.withIndexType(IndexType.IVF_FLAT)
+        .withIndexType(IndexType.HNSW)
+        .withMetricType(MetricType.COSINE)
         .withExtraParam(MilvusConstant.params)
         .withSyncMode(Boolean.FALSE)
         .withIndexName(MilvusConstant.idx_image_vector)
@@ -329,7 +369,7 @@ public class MilvusOperateService {
         .newBuilder().withCollectionName(alias).build());
     if (responseR != null && responseR.getStatus() == 0) {
       DescribeCollectionResponse response = responseR.getData();
-      return response.getCollectionName();
+      return response.getSchema().getName();
     }
     return null;
   }

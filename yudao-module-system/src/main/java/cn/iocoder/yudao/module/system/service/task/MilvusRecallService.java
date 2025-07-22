@@ -1,42 +1,22 @@
 package cn.iocoder.yudao.module.system.service.task;
 
-import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
-import cn.iocoder.yudao.module.system.api.task.common.ImageProcessService;
-import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
+
+import cn.iocoder.yudao.module.system.api.task.dto.TaskStrategyConfig;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
+import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
+import cn.iocoder.yudao.module.system.enums.task.VectorQueryTypeEnum;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.common.clientenum.ConsistencyLevelEnum;
-import io.milvus.grpc.DataType;
-import io.milvus.grpc.DescribeCollectionResponse;
-import io.milvus.grpc.GetCollectionStatisticsResponse;
-import io.milvus.grpc.KeyValuePair;
-import io.milvus.grpc.MutationResult;
 import io.milvus.grpc.SearchResults;
-import io.milvus.param.IndexType;
 import io.milvus.param.MetricType;
 import io.milvus.param.R;
-import io.milvus.param.RpcStatus;
-import io.milvus.param.alias.AlterAliasParam;
-import io.milvus.param.alias.CreateAliasParam;
-import io.milvus.param.collection.CollectionSchemaParam;
-import io.milvus.param.collection.CreateCollectionParam;
-import io.milvus.param.collection.DescribeCollectionParam;
-import io.milvus.param.collection.DropCollectionParam;
-import io.milvus.param.collection.FieldType;
-import io.milvus.param.collection.GetCollectionStatisticsParam;
-import io.milvus.param.collection.HasCollectionParam;
-import io.milvus.param.collection.LoadCollectionParam;
-import io.milvus.param.collection.ReleaseCollectionParam;
-import io.milvus.param.dml.InsertParam;
-import io.milvus.param.dml.InsertParam.Field;
 import io.milvus.param.dml.SearchParam;
-import io.milvus.param.index.CreateIndexParam;
 import io.milvus.response.SearchResultsWrapper;
 import io.milvus.response.SearchResultsWrapper.IDScore;
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -55,26 +35,75 @@ public class MilvusRecallService {
   @Resource
   private MilvusServiceClient imageMilvusClient;
 
-  private static final String param = "{\"nprobe\":10}";
+  //private static final String param = "{\"nprobe\":10}";
+  private static final String param = "{\"ef\":64}";
 
-  public List<Map<String,Object>> recall(List<Float> vector,String model) {
+  public List<Map<String,Object>> recall(List<Float> vector,String collectionName, VectorQueryTypeEnum queryType, String strategy) {
     List<Map<String,Object>> result =  Lists.newArrayList();
+
+    // 获取metric type
+    MetricType metricType = MetricType.COSINE;
+//    if (Objects.equals(VectorQueryTypeEnum.L2 , queryType)) {
+//      metricType = MetricType.L2;
+//    }else if (Objects.equals(VectorQueryTypeEnum.IP , queryType)) {
+//      metricType = MetricType.IP;
+//    }
+
+    // 获取Collection名称
+    //String collectionName = getCollectionName(model);
+
+    // 获取策略
+    List<String>  exprList = Lists.newArrayList();
+    if (StringUtils.isNotBlank(strategy)) {
+      TaskStrategyConfig taskStrategyConfig = JSONObject.parseObject(strategy, TaskStrategyConfig.class);
+      if (Objects.nonNull(taskStrategyConfig.getStartTime())){
+        exprList.add( MilvusConstant.articleDate + " >= "+taskStrategyConfig.getStartTime());
+      }else if (Objects.nonNull(taskStrategyConfig.getEndTime())){
+        exprList.add(MilvusConstant.articleDate +" <= "+taskStrategyConfig.getEndTime());
+      }else if (Objects.nonNull(taskStrategyConfig.getMedicalSpecialty())){
+        exprList.add( MilvusConstant.specialty +" == '"+taskStrategyConfig.getMedicalSpecialty()+"'");
+      }else if (CollectionUtils.isNotEmpty(taskStrategyConfig.getKeywordList())){
+        String keywords = "[";
+        keywords += StringUtils.join(taskStrategyConfig.getKeywordList(), ",");
+        keywords += "]";
+        exprList.add(MilvusConstant.keywords + "in " + keywords);
+      }
+    }
+    String exp = "";
+    if (CollectionUtils.isNotEmpty(exprList)) {
+      exp = StringUtils.join(exprList, " AND ");
+      log.info("milvusRecall exp: {}", exp);
+    }
 
     Stopwatch stopwatch = Stopwatch.createStarted();
     List<List<Float>> searchVectors = Arrays.asList(vector);
-
-    SearchParam searchParam = SearchParam.newBuilder()
-        .withCollectionName("resnet50_vectors_1751209930493")
-        .withMetricType(MetricType.IP)
-        .withOutFields(Lists.newArrayList(MilvusConstant.imageId))
-        .withTopK(30)
-        .withVectors(searchVectors)
-        .withVectorFieldName(MilvusConstant.vectors)
-        //.withExpr("score <= 11000")
-        .withParams(param)
-        .withConsistencyLevel(ConsistencyLevelEnum.EVENTUALLY)
-        .build();
+    SearchParam searchParam = null;
+    if (StringUtils.isNotBlank(exp)) {
+      searchParam = SearchParam.newBuilder()
+          .withCollectionName(collectionName)
+          .withMetricType(metricType)
+          .withOutFields(Lists.newArrayList(MilvusConstant.imageId))
+          .withTopK(30)
+          .withFloatVectors(searchVectors)
+          .withVectorFieldName(MilvusConstant.vectors)
+          .withExpr(exp)
+          .withParams(param)
+          .withConsistencyLevel(ConsistencyLevelEnum.EVENTUALLY)
+          .build();
+    }else {
+      searchParam = SearchParam.newBuilder()
+          .withCollectionName(collectionName)
+          .withMetricType(metricType)
+          .withOutFields(Lists.newArrayList(MilvusConstant.imageId))
+          .withTopK(30)
+          .withFloatVectors(searchVectors)
+          .withVectorFieldName(MilvusConstant.vectors)
+          .withParams(param)
+          .withConsistencyLevel(ConsistencyLevelEnum.EVENTUALLY)
+          .build();
+    }
     R<SearchResults> respSearch = imageMilvusClient.search(searchParam);
+
 
     if (respSearch.getStatus() == 0){
       SearchResultsWrapper wrapperSearch = new SearchResultsWrapper(respSearch.getData().getResults());
@@ -92,4 +121,21 @@ public class MilvusRecallService {
     log.info("milvus recall use {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     return result;
   }
+
+  private static String getCollectionName(String model) {
+    String collectionName = "resnet50_vectors";
+    if (ModelNameEnum.ResNet50.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.ResNet50.getCollectionName();
+    }else if (ModelNameEnum.DINOv2.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.DINOv2.getCollectionName();
+    }else if (ModelNameEnum.CLIP.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.CLIP.getCollectionName();
+    }else if (ModelNameEnum.SwinTransformer.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.SwinTransformer.getCollectionName();
+    }else if (ModelNameEnum.DenseNet121.getL2VectorName().equals(model)) {
+      collectionName = ModelNameEnum.DenseNet121.getCollectionName();
+    }
+    return collectionName;
+  }
+
 }

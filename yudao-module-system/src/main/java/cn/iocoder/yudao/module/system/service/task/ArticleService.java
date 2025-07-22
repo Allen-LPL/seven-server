@@ -65,4 +65,26 @@ public class ArticleService {
     return articleMapper.selectByIds(ids);
   }
 
+  public ArticleDO batchQueryById(Long ids){
+    return articleMapper.selectById(ids);
+  }
+
+  public Long maxId(){
+    return  articleMapper.getMaxId();
+  }
+
+  public Long minId(){
+    return  articleMapper.getMinId();
+  }
+
+  public List<ArticleDO> queryByIdsBatch(Long minId,Long maxId,Integer limit){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.between("id", minId, maxId);
+    queryWrapper.between("id", minId, maxId);
+    queryWrapper.eq("is_source",1);
+    queryWrapper.orderByAsc("id");
+    queryWrapper.last("limit "+limit);
+    return articleMapper.selectList(queryWrapper);
+  }
+
 }

@@ -285,3 +285,9 @@ milvus:
 image:
   replace:
     prefix: /Users/fangliu/Code/image_similar/seven-server/task-file/
+  process:
+    url: http://localhost:8086/process_articles
+  compare:
+    url: http://localhost:8087/compare_images
+  classify:
+    url: http://localhost:8086/classify

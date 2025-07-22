@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.TaskStrategyConfig;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarDefaultResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
@@ -91,6 +92,16 @@ public class SimilarController {
       return imgSimilarApiService.deleteComment(id);
     } catch (Exception e) {
       log.error("删除审核意见失败，", e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @GetMapping("/queryDefault")
+  public CommonResult<ImgSimilarDefaultResVO> queryDefault() {
+    try {
+      return imgSimilarApiService.queryDefault();
+    }catch (Exception e) {
+      log.error("查询失败，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }
