@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCre
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskUpdateReqVO;
 import com.alibaba.fastjson.JSONObject;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -23,7 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -88,6 +91,26 @@ public class TaskController {
       return imageTaskApiService.reviewTask(reviewReqVO);
     }catch (Exception e) {
       log.error("allocate error，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @RequestMapping(method = RequestMethod.DELETE, value = "/clear-allocation/{taskId}")
+  public CommonResult<String> clearAllocation(@PathVariable("taskId") Long taskId) {
+    try {
+      return imageTaskApiService.clearTaskAllocation(taskId);
+    } catch (Exception e) {
+      log.error("clear allocation error，", e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @PutMapping("/update")
+  public CommonResult<String> updateTask(@RequestBody ImageTaskUpdateReqVO updateReqVO) {
+    try {
+      return imageTaskApiService.updateTask(updateReqVO);
+    } catch (Exception e) {
+      log.error("update task error，", e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }

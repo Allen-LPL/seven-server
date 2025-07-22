@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAll
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskUpdateReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
@@ -298,6 +299,79 @@ public class ImageTaskApiService {
     return CommonResult.success("success");
   }
 
+  public CommonResult<String> clearTaskAllocation(Long taskId) {
+    if (Objects.isNull(taskId)) {
+      return CommonResult.error(500, "任务id不能为空");
+    }
+    ImageTaskDO imageTaskDO = imageTaskService.getById(taskId);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + taskId + "】");
+    }
+    
+    // 清空专家分配信息
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(taskId);
+    updateTask.setReviewerId(null);
+    updateTask.setAdminId(null);
+    updateTask.setAdminTime(null);
+    
+    Integer sum = imageTaskService.update(updateTask);
+    if (Objects.isNull(sum) || sum < 1){
+      return CommonResult.error(500, "清空任务分配失败，请联系管理员");
+    }
+    return CommonResult.success("success");
+  }
+
+  public CommonResult<String> updateTask(ImageTaskUpdateReqVO updateReqVO) {
+    Long id = updateReqVO.getId();
+    if (Objects.isNull(id)) {
+      return CommonResult.error(500, "任务id不能为空");
+    }
+    ImageTaskDO imageTaskDO = imageTaskService.getById(id);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + id + "】");
+    }
+    
+    // 只有审核中的任务才允许修改
+    if (!Objects.equals(imageTaskDO.getTaskStatus(), TaskStatusEnum.EXPERT_REVIEW.getCode())) {
+      return CommonResult.error(500, "只有审核中的任务可以修改");
+    }
+    
+    // 更新任务基本信息
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(id);
+    updateTask.setTaskType(updateReqVO.getTaskType());
+    updateTask.setReviewResult(updateReqVO.getReviewResult());
+    
+    Integer sum = imageTaskService.update(updateTask);
+    if (Objects.isNull(sum) || sum < 1){
+      return CommonResult.error(500, "更新任务失败，请联系管理员");
+    }
+    
+    // 更新文章信息
+    if (!CollectionUtils.isAnyEmpty(updateReqVO.getArticleTitleList(), updateReqVO.getArticleJournalList())) {
+      
+      List<ArticleDO> articleDOList = articleService.queryListByTaskId(id);
+      if (!CollectionUtils.isAnyEmpty(articleDOList)) {
+        // 更新文章标题和杂志名
+        for (int i = 0; i < articleDOList.size(); i++) {
+          ArticleDO articleDO = articleDOList.get(i);
+          
+          if (updateReqVO.getArticleTitleList() != null && i < updateReqVO.getArticleTitleList().size()) {
+            articleDO.setArticleTitle(updateReqVO.getArticleTitleList().get(i));
+          }
+          
+          if (updateReqVO.getArticleJournalList() != null && i < updateReqVO.getArticleJournalList().size()) {
+            articleDO.setArticleJournal(updateReqVO.getArticleJournalList().get(i));
+          }
+          
+          articleService.update(articleDO);
+        }
+      }
+    }
+    
+    return CommonResult.success("success");
+  }
 
 
 }
