@@ -46,7 +46,6 @@ public class TestProcessImage {
   public void TestProcessImage() {
     TenantContextHolder.setTenantId(1L);
     imageProcessService.process(49L);
-
   }
 
   @Test
@@ -106,6 +105,11 @@ public class TestProcessImage {
     Long taskId = 97L;
     List<ImgSimilarityDO> imgSimilarityDOS =  imgSimilarityService.queryByTaskId(taskId);
     queryFeaturePointService.queryFeaturePoints(imgSimilarityDOS);
+  }
+
+  @Test
+  public void testImageClassify(){
+
   }
 
 }
