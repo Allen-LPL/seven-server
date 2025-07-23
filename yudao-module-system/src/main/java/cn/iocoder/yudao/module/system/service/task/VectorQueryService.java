@@ -2,8 +2,10 @@ package cn.iocoder.yudao.module.system.service.task;
 
 
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
+import cn.iocoder.yudao.module.system.config.TaskConfig;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
+import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskTypeEnum;
@@ -32,10 +34,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class VectorQueryService {
 
-  @Value("${image.replace.prefix}")
-  private String replacePrefix;
-
-  private static final String local_prefix = "./task-file/";
+  @Resource
+  private TaskConfig taskConfig;
 
   @Resource
   private MilvusRecallService milvusRecallService;
@@ -45,11 +45,17 @@ public class VectorQueryService {
       Integer taskType, String strategyConfig){
     List<ImgSimilarityDO> recallList = Lists.newArrayList();
     if (Objects.equals(TaskTypeEnum.FULL_DB_QUERY.getCode(), taskType)) {
+      log.info("enter 全库查 ");
       recallList = fullDbQuery(allSmallList, taskId, queryType,strategyConfig);
+      log.info("end 全库查 , size : {}", recallList.size());
     }else if (Objects.equals(TaskTypeEnum.INNER_QUERY.getCode(), taskType)){
+      log.info("enter 篇内查 ");
       recallList = innerQuery(allSmallList, taskId, queryType);
+      log.info("end 篇内查 , size : {}", recallList.size());
     }else if (Objects.equals(TaskTypeEnum.STRATEGY_QUERY.getCode(), taskType)){
+      log.info("enter 策略查 ");
       recallList = strategyDbQuery(allSmallList, taskId, queryType, strategyConfig);
+      log.info("end 策略查 , size : {}", recallList.size());
     }
     return recallList;
   }
@@ -63,7 +69,7 @@ public class VectorQueryService {
 
     List<ImgSimilarityDO> recallList = Lists.newArrayList();
     for (SmallImageDO smallImageDO : allSmallList) {
-      String vectorPath = smallImageDO.getVectorPath().replace(local_prefix,replacePrefix);
+      String vectorPath = smallImageDO.getVectorPath().replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix());
       log.info("vectorPath = {}", vectorPath);
       Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(vectorPath);
       // todo  每个模型都检索一次，或者选一个检索一次
@@ -107,7 +113,7 @@ public class VectorQueryService {
     // 获取每个小图的向量
     List<VectorCalculateDTO> vectorCalculateDTOList =  Lists.newArrayList();
     for (SmallImageDO smallImageDO : allSmallList) {
-      String vectorPath = smallImageDO.getVectorPath().replace(local_prefix,replacePrefix);
+      String vectorPath = smallImageDO.getVectorPath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix());
       Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(vectorPath);
       VectorCalculateDTO vectorCalculateDTO = new VectorCalculateDTO();
       vectorCalculateDTO.setSmallImageId(smallImageDO.getId());
@@ -151,10 +157,10 @@ public class VectorQueryService {
         continue;
       }
 
-      // 根据相似分排序，只取top10
+      // 根据相似分排序且过滤低分
       List<ScoreData> sortedSimilarList = similarList.stream()
           .sorted(Comparator.comparingDouble(ScoreData::getScore).reversed())
-          .limit(10)
+          .filter(x -> x.getScore() >= ModelNameEnum.ResNet50.getScore())
           .collect(Collectors.toList());
 
       // 组装相似列表
@@ -166,7 +172,7 @@ public class VectorQueryService {
     return recallList;
   }
 
-  private static @NotNull ImgSimilarityDO getImgSimilarityDO(Long taskId, VectorCalculateDTO vObj, ScoreData similar) {
+  private ImgSimilarityDO getImgSimilarityDO(Long taskId, VectorCalculateDTO vObj, ScoreData similar) {
     ImgSimilarityDO imgSimilarityDO = new ImgSimilarityDO();
     imgSimilarityDO.setTaskId(taskId);
     imgSimilarityDO.setSourceSmallImageId(vObj.getSmallImageId());

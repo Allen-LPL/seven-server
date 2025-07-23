@@ -56,4 +56,6 @@ public class ImgSimilarityDO extends BaseDO {
 
   private String blockImage;
 
+  private Integer featurePointCnt;
+
 }

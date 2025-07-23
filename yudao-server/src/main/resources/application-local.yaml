@@ -291,3 +291,5 @@ image:
     url: http://localhost:8087/compare_images
   classify:
     url: http://localhost:8086/classify
+  feature:
+    url: http://localhost:8086/comparecount

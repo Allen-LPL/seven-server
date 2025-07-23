@@ -22,6 +22,10 @@ public class ImgSimilarityService {
     return imgSimilarityMapper.selectById(id);
   }
 
+  public List<ImgSimilarityDO> queryByTaskId(Long taskId) {
+    return imgSimilarityMapper.selectList("task_id", taskId);
+  }
+
   public Integer deleteById(Long id){
     return imgSimilarityMapper.deleteById(id);
   }
@@ -40,6 +44,10 @@ public class ImgSimilarityService {
 
   public Integer updateById(ImgSimilarityDO image) {
     return imgSimilarityMapper.updateById(image);
+  }
+
+  public Boolean updateBatch (List<ImgSimilarityDO> image) {
+    return imgSimilarityMapper.updateBatch(image);
   }
 
 }
