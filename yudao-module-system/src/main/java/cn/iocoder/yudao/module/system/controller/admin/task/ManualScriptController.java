@@ -36,9 +36,9 @@ public class ManualScriptController {
   private ArticleService articleService;
 
   @GetMapping("/dump/milvus/{alias}/{length}")
-  public CommonResult<String> dumpMilvus(@PathVariable String alias, @PathVariable Integer length) {
+  public CommonResult<String> dumpMilvus(@PathVariable String alias) {
     try {
-      milvusOperateService.fullDump(alias,length);
+      milvusOperateService.fullDump(alias);
       return CommonResult.success("success");
     }catch (Exception e) {
       log.error("dumpMilvus error: ，",e);
@@ -50,10 +50,7 @@ public class ManualScriptController {
   public CommonResult<String> dumpAllMilvus() {
     try {
       for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
-        if (ModelNameEnum.DINOv2.getCode().equals(modelNameEnum.getCode())) {
-          continue; // todo 这里没有调通
-        }
-        milvusOperateService.fullDump(modelNameEnum.getCollectionName(),modelNameEnum.getDim());
+        milvusOperateService.fullDump(modelNameEnum.getCollectionName());
       }
       return CommonResult.success("success");
     }catch (Exception e) {
@@ -65,7 +62,14 @@ public class ManualScriptController {
   @GetMapping("/write/data/milvus/{alias}")
   public CommonResult<String> writeDataMilvus(@PathVariable String alias) {
     try {
-      milvusOperateService.batchWriteDataFromDb(alias);
+      // 获取算法
+      ModelNameEnum modelNameEnum = ModelNameEnum.ResNet50;
+      for (ModelNameEnum modelNameEnum1 : ModelNameEnum.values()) {
+        if (modelNameEnum1.getCode().equals(alias)){
+          modelNameEnum = modelNameEnum1;
+        }
+      }
+      milvusOperateService.batchWriteDataFromDb(modelNameEnum.getCollectionName(), modelNameEnum);
       return CommonResult.success("success");
     }catch (Exception e) {
       log.error("dumpMilvus error: ，",e);
@@ -126,8 +130,8 @@ public class ManualScriptController {
   public CommonResult<String> handleDbFile() {
     try {
       TenantContextHolder.setTenantId(1L);
-      Long maxId = 311L;
-      Long minId = 277L;
+      Long maxId = 377L;
+      Long minId = 355L;
       for (Long articleId = minId; articleId <= maxId; articleId++) {
         dbImageProcessService.repeatProcessFileSingle(articleId);
       }

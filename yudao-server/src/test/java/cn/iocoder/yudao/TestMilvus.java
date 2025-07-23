@@ -40,21 +40,21 @@ public class TestMilvus {
   @Test
   public void fullDump() {
     TenantContextHolder.setTenantId(1L);
-    milvusOperateService.fullDump("resnet50_vectors", 2048);
+    milvusOperateService.fullDump("resnet50_vectors");
   }
 
   @Test
   public void testData(){
     TenantContextHolder.setTenantId(1L);
     String collectionName = "resnet50_vectors_1753093046455";
-    milvusOperateService.batchWriteDataFromDb(collectionName);
+    milvusOperateService.batchWriteDataFromDb(collectionName, ModelNameEnum.ResNet50);
   }
 
   @Test
   public void testWriteVectors(){
     TenantContextHolder.setTenantId(1L);
     String collectionName = "resnet50_vectors_1751209930493";
-    milvusOperateService.batchWriteDataFromDb(collectionName);
+    milvusOperateService.batchWriteDataFromDb(collectionName,ModelNameEnum.ResNet50);
   }
 
   @Test
