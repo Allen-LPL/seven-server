@@ -153,8 +153,8 @@ public class ImgSimilarApiService {
 
     if (StringUtils.isNotBlank(imgSimilarityDO.getDotImage()) && StringUtils.isNotBlank(imgSimilarityDO.getBlockImage())){
       ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
-      resVO.setBlockImage(imgSimilarityDO.getBlockImage().replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
-      resVO.setDotImage(imgSimilarityDO.getDotImage().replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
+      resVO.setBlockImage(imgSimilarityDO.getBlockImage());
+      resVO.setDotImage(imgSimilarityDO.getDotImage());
       return CommonResult.success(resVO);
     }
 
@@ -201,8 +201,8 @@ public class ImgSimilarApiService {
     imgSimilarityService.updateById(update);
 
     ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
-    resVO.setBlockImage(blockImage);
-    resVO.setDotImage(dotImage);
+    resVO.setBlockImage(blockImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
+    resVO.setDotImage(dotImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
     return CommonResult.success(resVO);
   }
   
