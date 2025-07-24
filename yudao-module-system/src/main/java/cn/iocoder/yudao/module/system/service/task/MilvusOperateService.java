@@ -408,6 +408,9 @@ public class MilvusOperateService {
   }
 
   public boolean releaseCollection(String collectionName) {
+    if (StringUtils.isBlank(collectionName)) {
+      return true;
+    }
     ReleaseCollectionParam releaseCollectionParam = ReleaseCollectionParam.newBuilder()
         .withCollectionName(collectionName)
         .build();
@@ -416,6 +419,9 @@ public class MilvusOperateService {
   }
 
   public boolean collectionDelete(String collectionName) {
+    if (StringUtils.isBlank(collectionName)) {
+      return true;
+    }
     if(!collectionExist(collectionName)){
       log.info("集合不存在，无法删除:{}" , collectionName);
       return false;
@@ -428,6 +434,9 @@ public class MilvusOperateService {
   }
 
   public int collectionDocCount(String collectionName) {
+    if (StringUtils.isBlank(collectionName)) {
+      return 0;
+    }
     GetCollectionStatisticsParam statParam = GetCollectionStatisticsParam.newBuilder()
         .withCollectionName(collectionName)
         .build();

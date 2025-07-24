@@ -153,8 +153,8 @@ public class ImgSimilarApiService {
 
     if (StringUtils.isNotBlank(imgSimilarityDO.getDotImage()) && StringUtils.isNotBlank(imgSimilarityDO.getBlockImage())){
       ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
-      resVO.setBlockImage(imgSimilarityDO.getBlockImage());
-      resVO.setDotImage(imgSimilarityDO.getDotImage());
+      resVO.setBlockImage(imgSimilarityDO.getBlockImage().replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
+      resVO.setDotImage(imgSimilarityDO.getDotImage().replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
       return CommonResult.success(resVO);
     }
 
