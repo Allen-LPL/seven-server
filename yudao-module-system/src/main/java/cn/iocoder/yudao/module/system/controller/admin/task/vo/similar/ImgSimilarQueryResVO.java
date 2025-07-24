@@ -71,4 +71,7 @@ public class ImgSimilarQueryResVO {
 
   @Schema(description = "是否相似")
   private Boolean isSimilar;
+
+  @Schema(description = "特征点数量")
+  private Integer featurePointCnt;
 }

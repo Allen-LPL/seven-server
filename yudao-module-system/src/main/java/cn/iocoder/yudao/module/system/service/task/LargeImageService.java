@@ -42,4 +42,8 @@ public class LargeImageService {
     return largeImageMapper.updateById(image);
   }
 
+  public Boolean updateBatch(List<LargeImageDO> largeImageDOList) {
+    return largeImageMapper.updateBatch(largeImageDOList);
+  }
+
 }

@@ -20,4 +20,7 @@ public class TaskConfig {
   @Value("${image.classify.url}")
   private String classifyImageUrl;
 
+  @Value("${image.feature.url}")
+  private String featureImageUrl;
+
 }

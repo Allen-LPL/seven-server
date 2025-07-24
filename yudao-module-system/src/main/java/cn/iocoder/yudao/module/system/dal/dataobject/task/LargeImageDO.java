@@ -83,5 +83,7 @@ public class LargeImageDO extends BaseDO {
    */
   private Integer isSource = 1;
 
+  private String imageType;
+
 
 }

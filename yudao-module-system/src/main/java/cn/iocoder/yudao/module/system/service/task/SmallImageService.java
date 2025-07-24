@@ -2,9 +2,11 @@ package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQueryReqVO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.SmallImageMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Resource;
@@ -69,6 +71,10 @@ public class SmallImageService {
     return smallImageMapper.selectList(new QueryWrapper<SmallImageDO>()
         .eq("article_id", articleId)
         .eq("status", 1));
+  }
+
+  public Boolean updateBatch(List<SmallImageDO> smallImageDOList) {
+    return smallImageMapper.updateBatch(smallImageDOList);
   }
 
 }

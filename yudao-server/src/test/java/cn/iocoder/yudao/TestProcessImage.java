@@ -5,11 +5,16 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
 import cn.iocoder.yudao.module.system.config.TaskConfig;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
+import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
+import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
+import cn.iocoder.yudao.module.system.service.task.QueryFeaturePointService;
 import cn.iocoder.yudao.server.YudaoServerApplication;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.util.List;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -31,11 +36,16 @@ public class TestProcessImage {
   @Resource
   private ArticleService articleService;
 
+  @Resource
+  private QueryFeaturePointService queryFeaturePointService;
+
+  @Resource
+  private ImgSimilarityService imgSimilarityService;
+
   @Test
   public void TestProcessImage() {
     TenantContextHolder.setTenantId(1L);
     imageProcessService.process(49L);
-
   }
 
   @Test
@@ -87,6 +97,19 @@ public class TestProcessImage {
     String filePath = "/Users/fangliu/Documents/pdf/";
     String fileType = "pdf";
     dbImageProcessService.batchHandleFileParentDirectory(filePath,fileType);
+  }
+
+  @Test
+  public void testCompareCount(){
+    TenantContextHolder.setTenantId(1L);
+    Long taskId = 97L;
+    List<ImgSimilarityDO> imgSimilarityDOS =  imgSimilarityService.queryByTaskId(taskId);
+    queryFeaturePointService.queryFeaturePoints(imgSimilarityDOS);
+  }
+
+  @Test
+  public void testImageClassify(){
+
   }
 
 }

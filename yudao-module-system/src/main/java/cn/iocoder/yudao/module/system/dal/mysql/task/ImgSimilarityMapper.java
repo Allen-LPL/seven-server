@@ -16,7 +16,8 @@ public interface ImgSimilarityMapper extends BaseMapperX<ImgSimilarityDO> {
         .eqIfPresent(ImgSimilarityDO::getId, reqVO.getId())
         .eqIfPresent(ImgSimilarityDO::getTaskId,reqVO.getTaskId())
         .eqIfPresent(ImgSimilarityDO::getCreator, reqVO.getCreator())
-        .orderByDesc(ImgSimilarityDO::getCreateTime,ImgSimilarityDO::getUpdateTime));
+        .ge(ImgSimilarityDO::getFeaturePointCnt, reqVO.getFeaturePoints())
+        .orderByDesc(ImgSimilarityDO::getFeaturePointCnt,ImgSimilarityDO::getUpdateTime));
   }
 
 }

@@ -49,6 +49,7 @@ public class VectorCalculateDTO {
   public static class ScoreData{
     private Long smallImageId;
     private Double score;
+    private String modelName;
   }
 
 }

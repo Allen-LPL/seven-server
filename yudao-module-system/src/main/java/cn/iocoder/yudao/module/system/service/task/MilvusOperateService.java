@@ -67,14 +67,22 @@ public class MilvusOperateService {
   private TaskConfig taskConfig;
 
 
-  public void fullDump(String alias,Integer dimension){
+  public void fullDump(String alias){
     // 1.获取新旧collection名字
     String oldName = getOldCollectionName(alias);
     String newName = alias+"_"+System.currentTimeMillis();
     log.info("oldName : {}, newName : {}", oldName, newName);
 
+    // 获取算法
+    ModelNameEnum modelNameEnum = ModelNameEnum.ResNet50;
+    for (ModelNameEnum modelNameEnum1 : ModelNameEnum.values()) {
+      if (modelNameEnum1.getCode().equals(alias)){
+        modelNameEnum = modelNameEnum1;
+      }
+    }
+
     // 2.创建结合
-    boolean flag = createCollection(newName,dimension);
+    boolean flag = createCollection(newName,modelNameEnum.getDim());
     if(!flag){
       log.error("newName : {} ,创建失败", newName);
     }
@@ -85,7 +93,7 @@ public class MilvusOperateService {
 
     // 4.写入数据
     //batchWriteDataFromFilePath(newName);
-    batchWriteDataFromDb(newName);
+    batchWriteDataFromDb(newName, modelNameEnum);
 
     // 5.切换别名
     renameAliasToRealCollection(newName,oldName, alias);
@@ -115,12 +123,13 @@ public class MilvusOperateService {
     }
   }
 
-  public void batchWriteDataFromDb(String newName){
+  public void batchWriteDataFromDb(String newName,ModelNameEnum modelNameEnum){
     //Long maxId = articleService.maxId();
     //Long minId = articleService.minId();
     Long maxId = 377L;
     Long minId = 355L;
     int batch = 10;
+
     while (true){
       List<ArticleDO> articleDOList = articleService.queryByIdsBatch(minId,maxId,batch);
       if (org.apache.commons.collections4.CollectionUtils.isEmpty(articleDOList) || minId >= maxId){
@@ -135,7 +144,8 @@ public class MilvusOperateService {
           smallImageMilvusDTO.setId(smallImageDO.getId());
           Map<String,List<Double>> vectorMap = CsvReadVectorUtils.readVector(smallImageDO.getVectorPath()
               .replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
-          List<Float> floatList = vectorMap.get(ModelNameEnum.ResNet50.getL2VectorName()).stream().map(Double::floatValue).collect(Collectors.toList());
+          List<Float> floatList = vectorMap.get(modelNameEnum.getL2VectorName()).stream().map(Double::floatValue)
+              .collect(Collectors.toList());
           smallImageMilvusDTO.setResnet50Vectors(floatList);
           smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());
           smallImageMilvusDTO.setSpecialty(articleDO.getMedicalSpecialty());
