@@ -67,42 +67,49 @@ public class MilvusOperateService {
   private TaskConfig taskConfig;
 
 
-  public void fullDump(String alias){
-    // 1.获取新旧collection名字
-    String oldName = getOldCollectionName(alias);
-    String newName = alias+"_"+System.currentTimeMillis();
-    log.info("oldName : {}, newName : {}", oldName, newName);
+  public void fullDump(ModelNameEnum modelNameEnum){
 
-    // 获取算法
-    ModelNameEnum modelNameEnum = ModelNameEnum.ResNet50;
-    for (ModelNameEnum modelNameEnum1 : ModelNameEnum.values()) {
-      if (modelNameEnum1.getCode().equals(alias)){
-        modelNameEnum = modelNameEnum1;
-      }
-    }
+    // 1.获取新旧collection名字
+    log.info("【1/7】start get Collection name");
+    String oldName = getOldCollectionName(modelNameEnum.getCollectionName());
+    String newName = modelNameEnum.getCollectionName()+"_"+System.currentTimeMillis();
+    log.info("【1/7】end get Collection name , oldName : {}, newName : {}", oldName, newName);
+
 
     // 2.创建结合
+    log.info("【2/7】start create collection, newName={}, dim={}", newName, modelNameEnum.getDim());
     boolean flag = createCollection(newName,modelNameEnum.getDim());
     if(!flag){
       log.error("newName : {} ,创建失败", newName);
     }
+    log.info("【2/7】end create collection, newName={}, dim={}", newName, modelNameEnum.getDim());
 
     // 3.创建index
+    log.info("【3/7】start create index, newName={}", newName);
     createVectorIndex(newName);
     createScalarIndex(newName);
+    log.info("【3/7】end create index, newName={}", newName);
 
     // 4.写入数据
-    //batchWriteDataFromFilePath(newName);
+    log.info("【4/7】start write data, newName={}", newName);
     batchWriteDataFromDb(newName, modelNameEnum);
+    log.info("【4/7】end write data, newName={}", newName);
 
     // 5.切换别名
-    renameAliasToRealCollection(newName,oldName, alias);
+    log.info("【5/7】start change alias, newName={}, oldName={}, alias={}", newName,oldName,modelNameEnum.getCollectionName());
+    renameAliasToRealCollection(newName,oldName, modelNameEnum.getCollectionName());
+    log.info("【5/7】end change alias, newName={}, oldName={}, alias={}", newName,oldName,modelNameEnum.getCollectionName());
+
+    // 6.load new
+    log.info("【6/7】start load new collection, newName={}", newName);
     loadCollection(newName);
-    log.info("old doc count : {}, new doc count : {}",collectionDocCount(oldName), collectionDocCount(newName));
+    log.info("【6/7】end load new collection, newName={}, old doc count : {}, new doc count : {}", newName, collectionDocCount(oldName), collectionDocCount(newName));
 
     // 6.删除旧索引
+    log.info("【7/7】start release and delete old collection, oldName={}", oldName);
     releaseCollection(oldName);
     collectionDelete(oldName);
+    log.info("【7/7】end release and delete old collection, oldName={}", oldName);
   }
 
   public void writeSingleFile(String indexName, String filePath, String fileType){

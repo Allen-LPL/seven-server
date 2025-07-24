@@ -30,12 +30,12 @@ import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -76,7 +76,9 @@ public class ImgSimilarApiService {
     }
     RoleDO roleDo = userRoles.get(0);
 
-
+    if (CollectionUtils.isAnyEmpty(reqVO.getModelNameList())){
+      reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
+    }
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();

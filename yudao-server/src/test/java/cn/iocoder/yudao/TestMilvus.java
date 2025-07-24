@@ -40,7 +40,7 @@ public class TestMilvus {
   @Test
   public void fullDump() {
     TenantContextHolder.setTenantId(1L);
-    milvusOperateService.fullDump("resnet50_vectors");
+    milvusOperateService.fullDump(ModelNameEnum.ResNet50);
   }
 
   @Test
