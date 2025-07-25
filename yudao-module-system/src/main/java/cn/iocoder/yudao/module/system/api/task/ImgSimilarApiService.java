@@ -79,6 +79,9 @@ public class ImgSimilarApiService {
     if (CollectionUtils.isAnyEmpty(reqVO.getModelNameList())){
       reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
     }
+    if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
+      reqVO.setSimilarScoreThreshold(reqVO.getSimilarScoreThreshold()/100);
+    }
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();
@@ -240,7 +243,7 @@ public class ImgSimilarApiService {
     for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
       DefaultModelDTO defaultModelDTO = new DefaultModelDTO();
       defaultModelDTO.setName(modelNameEnum.getCode());
-      defaultModelDTO.setScore(modelNameEnum.getScore());
+      defaultModelDTO.setScore(modelNameEnum.getScore()*100);
       defaultModelDTOList.add(defaultModelDTO);
     }
     resVO.setDefaultModelList(defaultModelDTOList);
