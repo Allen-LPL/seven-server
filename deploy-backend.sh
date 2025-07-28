@@ -29,7 +29,7 @@ log_error() {
 
 # 配置变量
 JAR_PATH="/Users/allen/Code/javaCode/yudao-boot-mini/yudao-server/target/yudao-server.jar"
-REMOTE_HOST="api02"
+REMOTE_HOST="server01"
 REMOTE_PATH="/data/yudao"
 LOG_FILE="/data/yudao/yudao-server.log"
 

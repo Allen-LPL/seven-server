@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.api.task.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.Data;
 
 @Data
@@ -113,12 +114,17 @@ public class ImageTaskQueryResDTO {
   /**
    *  上传文件题目
    */
-  private List<String> articleTitleList;
+  private Map<Long, String> articleTitleMap;
 
   /**
    *  杂志名
    */
-  private List<String> articleJournalList;
+  private Map<Long, String> articleJournalMap;
+
+  /**
+   * 作者姓名
+   */
+  private Map<Long, List<String>> authorNameMap;
 
   private String fileType;
 

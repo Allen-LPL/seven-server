@@ -17,6 +17,7 @@ import cn.iocoder.yudao.module.infra.framework.file.core.client.s3.FilePresigned
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FileTypeUtils;
 import com.google.common.annotations.VisibleForTesting;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -31,6 +32,7 @@ import static cn.iocoder.yudao.module.infra.enums.ErrorCodeConstants.FILE_NOT_EX
  * @author 芋道源码
  */
 @Service
+@Slf4j
 public class FileServiceImpl implements FileService {
 
     /**
@@ -52,6 +54,9 @@ public class FileServiceImpl implements FileService {
 
     @Resource
     private FileMapper fileMapper;
+
+//    @Resource
+//    private ArticleMapper articleMapper;
 
     @Override
     public PageResult<FileDO> getFilePage(FilePageReqVO pageReqVO) {
@@ -146,23 +151,17 @@ public class FileServiceImpl implements FileService {
     @Override
     public void deleteFile(Long id) throws Exception {
         // 校验存在
-        FileDO file = validateFileExists(id);
+        FileDO file = fileMapper.selectById(id);
+        if (file == null) {
+            throw exception(FILE_NOT_EXISTS);
+        }
 
         // 从文件存储器中删除
         FileClient client = fileConfigService.getFileClient(file.getConfigId());
-        Assert.notNull(client, "客户端({}) 不能为空", file.getConfigId());
         client.delete(file.getPath());
 
         // 删除记录
         fileMapper.deleteById(id);
-    }
-
-    private FileDO validateFileExists(Long id) {
-        FileDO fileDO = fileMapper.selectById(id);
-        if (fileDO == null) {
-            throw exception(FILE_NOT_EXISTS);
-        }
-        return fileDO;
     }
 
     @Override

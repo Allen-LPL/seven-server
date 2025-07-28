@@ -55,4 +55,19 @@ public class ImageTaskService {
     return imageTaskMapper.selectById(id);
   }
 
+  // 删除专家用户的置空逻辑
+  public Integer clearExpertUser(Long id) {
+    ImageTaskDO imageTaskDO = imageTaskMapper.selectById(id);
+    UpdateWrapper<ImageTaskDO> updateWrapper = new UpdateWrapper<>();
+    if (imageTaskDO != null) {
+      updateWrapper.set("reviewer_id", null);
+      updateWrapper.set("admin_id", null);
+      updateWrapper.set("admin_time", null);
+      updateWrapper.set("update_time", LocalDateTime.now());
+      updateWrapper.eq("id", id);
+      return imageTaskMapper.update(updateWrapper);
+    } else {
+      return 0; // 如果任务不存在，直接返回0
+    }
+  }
 }

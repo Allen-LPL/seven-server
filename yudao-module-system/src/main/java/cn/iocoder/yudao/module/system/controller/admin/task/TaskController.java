@@ -96,9 +96,9 @@ public class TaskController {
   }
 
   @RequestMapping(method = RequestMethod.DELETE, value = "/clear-allocation/{taskId}")
-  public CommonResult<String> clearAllocation(@PathVariable("taskId") Long taskId) {
+  public CommonResult<String> clearAllocation(@PathVariable("taskId") Long id) {
     try {
-      return imageTaskApiService.clearTaskAllocation(taskId);
+      return imageTaskApiService.clearTaskAllocation(id);
     } catch (Exception e) {
       log.error("clear allocation error，", e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));

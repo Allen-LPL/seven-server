@@ -34,8 +34,10 @@ import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -123,27 +125,30 @@ public class ImageTaskApiService {
         }
       }
 
-      // 补充论文标题和杂志社
-      List<String> articleTitleList = Lists.newArrayList();
-      List<String> articleJournalList = Lists.newArrayList();
+      // 补充论文标题、杂志社和作者
+      Map<Long, String> articleTitleMap = Maps.newHashMap();
+      Map<Long, String> articleJournalMap = Maps.newHashMap();
+      Map<Long, List<String>> authorNameMap = Maps.newHashMap();
       List<String> fileUrlList = Lists.newArrayList();
       List<String> imageList = Lists.newArrayList();
-      
+
       List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
       for (ArticleDO articleDO : articleDOList) {
         if (queryResDTO.getFileType().equals("pdf")){
-          articleTitleList.add(articleDO.getArticleTitle());
-          articleJournalList.add(articleDO.getArticleJournal());
+          articleTitleMap.put(articleDO.getId(), articleDO.getArticleTitle());
+          articleJournalMap.put(articleDO.getId(), articleDO.getArticleJournal());
+          authorNameMap.put(articleDO.getId(), articleDO.getAuthorName());
           fileUrlList.add(articleDO.getFilePath());
         } else {
           imageList.add(articleDO.getFilePath());
         }
       }
-      
+
       queryResDTO.setFileUrlList(fileUrlList);
       queryResDTO.setFirstImage(imageList);
-      queryResDTO.setArticleTitleList(articleTitleList);
-      queryResDTO.setArticleJournalList(articleJournalList);
+      queryResDTO.setArticleTitleMap(articleTitleMap);
+      queryResDTO.setArticleJournalMap(articleJournalMap);
+      queryResDTO.setAuthorNameMap(authorNameMap);
     }
     return pageResult;
   }
@@ -288,23 +293,18 @@ public class ImageTaskApiService {
     return CommonResult.success("success");
   }
 
-  public CommonResult<String> clearTaskAllocation(Long taskId) {
-    if (Objects.isNull(taskId)) {
+  // 删除专家用户绑定
+  public CommonResult<String> clearTaskAllocation(Long id) {
+    if (Objects.isNull(id)) {
       return CommonResult.error(500, "任务id不能为空");
     }
-    ImageTaskDO imageTaskDO = imageTaskService.getById(taskId);
+    ImageTaskDO imageTaskDO = imageTaskService.getById(id);
     if (Objects.isNull(imageTaskDO)) {
-      return CommonResult.error(500, "任务不存在【" + taskId + "】");
+      return CommonResult.error(500, "任务不存在【" + id + "】");
     }
     
     // 清空专家分配信息
-    ImageTaskDO updateTask = new ImageTaskDO();
-    updateTask.setId(taskId);
-    updateTask.setReviewerId(null);
-    updateTask.setAdminId(null);
-    updateTask.setAdminTime(null);
-    
-    Integer sum = imageTaskService.update(updateTask);
+    Integer sum = imageTaskService.clearExpertUser(id);
     if (Objects.isNull(sum) || sum < 1){
       return CommonResult.error(500, "清空任务分配失败，请联系管理员");
     }

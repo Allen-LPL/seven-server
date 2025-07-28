@@ -5,21 +5,20 @@ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileUpdateReqVO;
 import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
-import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
-import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryResVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
+import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,6 +48,9 @@ public class ArticleApiService {
 
   @Resource
   private DbImageProcessService dbImageProcessService;
+
+  @Resource
+  private ArticleMapper articleMapper;
 
   public CommonResult<PageResult<FileQueryResVO>> pageQuery(FileQueryReqVO fileQueryReqVO) {
     PageResult<ArticleDO> pageResult = articleService.queryPage(fileQueryReqVO);
@@ -104,5 +106,21 @@ public class ArticleApiService {
     return CommonResult.success("success");
   }
 
+
+  public void updateFilesInBatch(FileUpdateReqVO updateReqVO) {
+    // 遍历请求中的每个文件更新项
+    for (FileUpdateReqVO.FileUpdateItem item : updateReqVO.getFiles()) {
+      // 创建一个 ArticleDO 对象用于更新
+      ArticleDO articleUpdate = new ArticleDO();
+      articleUpdate.setId(item.getId());
+      articleUpdate.setArticleTitle(item.getArticleTitle());
+      articleUpdate.setArticleJournal(item.getArticleJournal());
+      articleUpdate.setAuthorName(item.getAuthorName());
+
+      // 调用 Mapper 更新数据库中的记录
+      articleMapper.updateById(articleUpdate);
+    }
+    log.info("【updateFilesInBatch】成功批量更新了 {} 条文件内容。", updateReqVO.getFiles().size());
+  }
 
 }

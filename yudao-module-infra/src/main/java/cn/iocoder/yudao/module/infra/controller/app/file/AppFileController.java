@@ -59,5 +59,4 @@ public class AppFileController {
     public CommonResult<Long> createFile(@Valid @RequestBody FileCreateReqVO createReqVO) {
         return success(fileService.createFile(createReqVO));
     }
-
 }

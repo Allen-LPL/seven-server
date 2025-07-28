@@ -65,3 +65,5 @@ application-my.yaml
 /yudao-ui-app/unpackage/
 **/.DS_Store
 /task/
+/env-deploy/
+env-deploy.zip

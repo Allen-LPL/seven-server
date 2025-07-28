@@ -1,18 +1,23 @@
 package cn.iocoder.yudao.module.system.controller.admin.task;
 
 
+import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+
 import cn.iocoder.yudao.framework.common.exception.ErrorCode;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileUpdateReqVO;
 import cn.iocoder.yudao.module.system.api.task.ArticleApiService;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryResVO;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import javax.annotation.Resource;
+import javax.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,5 +84,10 @@ public class ArticleController {
     }
   }
 
-
+  @PostMapping("/update/batch")
+  @Operation(summary = "批量更新文件内容")
+  public CommonResult<Boolean> updateFilesInBatch(@Valid @RequestBody FileUpdateReqVO updateReqVO) {
+    articleApiService.updateFilesInBatch(updateReqVO);
+    return success(true);
+  }
 }

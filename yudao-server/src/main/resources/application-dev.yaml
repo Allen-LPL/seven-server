@@ -63,6 +63,11 @@ spring:
     port: 16379 # 端口
     database: 14 # 数据库索引
     password: openIM123 # 密码，建议生产环境开启
+#  redis:
+#    host: localhost # 地址
+#    port: 6379 # 端口
+#    database: 14 # 数据库索引
+#    password: 'wl-_-2099' # 密码，建议生产环境开启
 
 --- #################### 定时任务相关配置 ####################
 
