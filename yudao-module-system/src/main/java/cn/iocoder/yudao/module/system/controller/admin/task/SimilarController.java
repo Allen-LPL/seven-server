@@ -55,6 +55,7 @@ public class SimilarController {
   @GetMapping("/query")
   public CommonResult<PageResult<ImgSimilarQueryResVO>> pageQuery(ImgSimilarityQueryReqVO reqVO) {
     try {
+      log.info("reqVO : {}", JSONObject.toJSONString(reqVO));
       PageResult<ImgSimilarQueryResVO> pageResult =  imgSimilarApiService.query(reqVO);
       return CommonResult.success(pageResult);
     }catch (Exception e) {

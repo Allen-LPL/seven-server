@@ -35,10 +35,20 @@ public class ManualScriptController {
   @Resource
   private ArticleService articleService;
 
-  @GetMapping("/dump/milvus/{alias}/{length}")
-  public CommonResult<String> dumpMilvus(@PathVariable String alias) {
+  @GetMapping("/dump/milvus/{modelCode}")
+  public CommonResult<String> dumpMilvus(@PathVariable String modelCode) {
     try {
-      milvusOperateService.fullDump(alias);
+
+      // 获取算法
+      ModelNameEnum modelNameEnum = ModelNameEnum.ResNet50;
+      for (ModelNameEnum modelNameEnum1 : ModelNameEnum.values()) {
+        if (modelNameEnum1.getCode().equals(modelCode)){
+          modelNameEnum = modelNameEnum1;
+        }
+      }
+      log.info("start dump milvus: {} , dim {}", modelCode, modelNameEnum.getDim());
+      milvusOperateService.fullDump(modelNameEnum);
+      log.info("end dump milvus: {} , dim {}", modelCode, modelNameEnum.getDim());
       return CommonResult.success("success");
     }catch (Exception e) {
       log.error("dumpMilvus error: ，",e);
@@ -50,7 +60,9 @@ public class ManualScriptController {
   public CommonResult<String> dumpAllMilvus() {
     try {
       for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
-        milvusOperateService.fullDump(modelNameEnum.getCollectionName());
+        log.info("start dumpAllMilvus alias: {} , dim {}", modelNameEnum.getCollectionName(), modelNameEnum.getDim());
+        milvusOperateService.fullDump(modelNameEnum);
+        log.info("start dumpAllMilvus alias : {} , dim {}", modelNameEnum.getCollectionName(), modelNameEnum.getDim());
       }
       return CommonResult.success("success");
     }catch (Exception e) {

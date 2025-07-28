@@ -30,12 +30,12 @@ import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -76,7 +76,12 @@ public class ImgSimilarApiService {
     }
     RoleDO roleDo = userRoles.get(0);
 
-
+    if (CollectionUtils.isAnyEmpty(reqVO.getModelNameList())){
+      reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
+    }
+    if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
+      reqVO.setSimilarScoreThreshold(reqVO.getSimilarScoreThreshold()/100);
+    }
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();
@@ -199,8 +204,8 @@ public class ImgSimilarApiService {
     imgSimilarityService.updateById(update);
 
     ImgSimilarCompareResVO resVO = new ImgSimilarCompareResVO();
-    resVO.setBlockImage(blockImage);
-    resVO.setDotImage(dotImage);
+    resVO.setBlockImage(blockImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
+    resVO.setDotImage(dotImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
     return CommonResult.success(resVO);
   }
   
@@ -238,7 +243,7 @@ public class ImgSimilarApiService {
     for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
       DefaultModelDTO defaultModelDTO = new DefaultModelDTO();
       defaultModelDTO.setName(modelNameEnum.getCode());
-      defaultModelDTO.setScore(modelNameEnum.getScore());
+      defaultModelDTO.setScore(modelNameEnum.getScore()*100);
       defaultModelDTOList.add(defaultModelDTO);
     }
     resVO.setDefaultModelList(defaultModelDTOList);

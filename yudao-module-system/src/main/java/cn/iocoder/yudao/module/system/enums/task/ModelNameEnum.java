@@ -26,9 +26,9 @@ public enum ModelNameEnum {
         //Resnet50
     //ResNet50("ResNet50", 2048, 0.99993),
 
-    ResNet50("resnet50","ResNet50_original","ResNet50_L2","resnet50_vectors", 2048, 0.99993),
-
     DINOv2("dinov2","DINOv2_original","DINOv2_L2", "dinov2_vectors",384, 0.965),
+
+    ResNet50("resnet50","ResNet50_original","ResNet50_L2","resnet50_vectors", 2048, 0.99993),
 
     CLIP("clip","CLIP_original","CLIP_L2","clip_vectors", 768, 0.965),
 
