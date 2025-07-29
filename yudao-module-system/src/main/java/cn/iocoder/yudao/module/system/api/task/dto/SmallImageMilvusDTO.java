@@ -18,5 +18,15 @@ public class SmallImageMilvusDTO extends SmallImageDO {
 
   private String specialty;
 
-  private List<Float> resnet50Vectors;
+  private List<Float> resnet50;
+
+  private List<Float> dinoV2;
+
+  private List<Float> clipVit;
+
+  private List<Float> denseNet121;
+
+  private List<Float> swinTransformer;
+
+  private List<Float> vectors;
 }

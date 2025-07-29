@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.MilvusConstant;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.task.utils.CsvReadVectorUtils;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
@@ -32,8 +33,11 @@ import io.milvus.param.collection.GetCollectionStatisticsParam;
 import io.milvus.param.collection.HasCollectionParam;
 import io.milvus.param.collection.LoadCollectionParam;
 import io.milvus.param.collection.ReleaseCollectionParam;
+import io.milvus.param.dml.DeleteParam;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.dml.InsertParam.Field;
+import io.milvus.param.highlevel.dml.DeleteIdsParam;
+import io.milvus.param.highlevel.dml.response.DeleteResponse;
 import io.milvus.param.index.CreateIndexParam;
 import java.io.File;
 import java.util.List;
@@ -121,12 +125,12 @@ public class MilvusOperateService {
     for (SmallImageMilvusDTO smallImageMilvusDTO : smallImageMilvusDTOS) {
       batchList.add(smallImageMilvusDTO);
       if (batchList.size() >= 10) {
-        writeData(indexName, batchList);
+        writeDataOneCollection(indexName, batchList);
         batchList.clear();
       }
     }
     if (!batchList.isEmpty()){
-      writeData(indexName,batchList);
+      writeDataOneCollection(indexName,batchList);
     }
   }
 
@@ -153,7 +157,7 @@ public class MilvusOperateService {
               .replace(FilePathConstant.local_prefix,taskConfig.getReplacePrefix()));
           List<Float> floatList = vectorMap.get(modelNameEnum.getL2VectorName()).stream().map(Double::floatValue)
               .collect(Collectors.toList());
-          smallImageMilvusDTO.setResnet50Vectors(floatList);
+          smallImageMilvusDTO.setVectors(floatList);
           smallImageMilvusDTO.setAuthor(articleDO.getAuthorName());
           smallImageMilvusDTO.setSpecialty(articleDO.getMedicalSpecialty());
           smallImageMilvusDTO.setArticleDate(articleDO.getArticleDate());
@@ -163,7 +167,7 @@ public class MilvusOperateService {
           batchList.add(smallImageMilvusDTO);
         }
         if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(batchList)){
-          writeData(newName,batchList);
+          writeDataOneCollection(newName,batchList);
         }
       }
 
@@ -173,7 +177,7 @@ public class MilvusOperateService {
   }
 
 
-  public void  writeData(String newName, List<SmallImageMilvusDTO> smallImageMilvusDTOS){
+  public void  writeDataOneCollection(String newName, List<SmallImageMilvusDTO> smallImageMilvusDTOS){
 
     List<Long> imageIdList = Lists.newArrayList();
     List<List<String>> keywordList = Lists.newArrayList();
@@ -212,7 +216,7 @@ public class MilvusOperateService {
       }else {
         specialtyList.add("");
       }
-      vectorList.add(imageMilvusDTO.getResnet50Vectors()); //todo
+      vectorList.add(imageMilvusDTO.getVectors()); //todo
     }
 
     List<Field> fieldDataList = Lists.newArrayList();
@@ -236,6 +240,27 @@ public class MilvusOperateService {
     } else {
       log.error("insert milvus collection failed: {}",imageIdList.size());
     }
+  }
+
+  public void  writeDataAllCollection(List<SmallImageMilvusDTO> smallImageMilvusDTOS){
+
+    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+      smallImageMilvusDTOS.forEach(smallImageMilvusDTO -> {
+        if (Objects.equals(ModelNameEnum.ResNet50,modelNameEnum)){
+          smallImageMilvusDTO.setVectors(smallImageMilvusDTO.getResnet50());
+        }else if (Objects.equals(ModelNameEnum.DINOv2,modelNameEnum)){
+          smallImageMilvusDTO.setVectors(smallImageMilvusDTO.getDinoV2());
+        }else if (Objects.equals(ModelNameEnum.DenseNet121,modelNameEnum)){
+          smallImageMilvusDTO.setVectors(smallImageMilvusDTO.getDenseNet121());
+        }else if (Objects.equals(ModelNameEnum.CLIP,modelNameEnum)){
+          smallImageMilvusDTO.setVectors(smallImageMilvusDTO.getClipVit());
+        }else if (Objects.equals(ModelNameEnum.SwinTransformer,modelNameEnum)){
+          smallImageMilvusDTO.setVectors(smallImageMilvusDTO.getSwinTransformer());
+        }
+      });
+      writeDataOneCollection(modelNameEnum.getCollectionName(), smallImageMilvusDTOS);
+    }
+
   }
 
   public boolean createCollection(String collectionName, Integer dimension){
@@ -446,5 +471,15 @@ public class MilvusOperateService {
       return Integer.parseInt(stats.getValue());
     }
     return 0;
+  }
+
+  public boolean  deleteByPrimaryId(List<Long> smallImageIds, String collectionName) {
+
+    DeleteIdsParam deleteIdsParam = DeleteIdsParam.newBuilder().withCollectionName(collectionName)
+        .withPrimaryIds(smallImageIds)
+        .build();
+    R<DeleteResponse> deleteResponseR = imageMilvusClient.delete(deleteIdsParam);
+    log.info("delete response : {}", JSONObject.toJSONString(deleteResponseR));
+    return  deleteResponseR!=null && deleteResponseR.getStatus() == 0;
   }
 }

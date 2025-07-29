@@ -30,6 +30,10 @@ public class SmallImageService {
     return smallImageMapper.deleteByIds(ids);
   }
 
+  public Integer deleteByArticleId(Long articleId){
+    return smallImageMapper.delete("article_id",String.valueOf(articleId));
+  }
+
   public List<SmallImageDO> queryByIds(Set<Long> ids){
     return smallImageMapper.selectByIds(ids);
   }
