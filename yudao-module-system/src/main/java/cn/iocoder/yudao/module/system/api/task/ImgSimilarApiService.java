@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import cn.iocoder.yudao.module.system.enums.task.SimilarLevelEnum;
 
 @Service
 @Slf4j
@@ -104,12 +105,25 @@ public class ImgSimilarApiService {
       SmallImageDO sourceSmall = smallImageService.queryById(imgSimilarQueryResVO.getSourceSmallImageId());
       if (Objects.nonNull(sourceSmall)) {
         imgSimilarQueryResVO.setSourceSmallImagePath(sourceSmall.getImagePath());
+        imgSimilarQueryResVO.setImageType(sourceSmall.getImageType());
       }
       SmallImageDO targetSmall = smallImageService.queryById(imgSimilarQueryResVO.getTargetSmallImageId());
       if (Objects.nonNull(targetSmall)) {
         imgSimilarQueryResVO.setTargetSmallImagePath(targetSmall.getImagePath());
       }
 
+      // 相似level
+      Integer featurePoints = imgSimilarQueryResVO.getFeaturePointCnt();
+      if (Objects.isNull(featurePoints)) {
+        featurePoints = 0;
+      }
+      if (featurePoints>=0 && featurePoints<=1){
+        imgSimilarQueryResVO.setSimilarityLevel(SimilarLevelEnum.light.getLevel());
+      }else if (featurePoints>=2 && featurePoints<5){
+        imgSimilarQueryResVO.setSimilarityLevel(SimilarLevelEnum.middle.getLevel());
+      }else if (featurePoints >= 5){
+        imgSimilarQueryResVO.setSimilarityLevel(SimilarLevelEnum.weight.getLevel());
+      }
       imgSimilarQueryResVO.setSimilarityScore(imgSimilarQueryResVO.getSimilarityScore()*100);
     }
     return pageResult;

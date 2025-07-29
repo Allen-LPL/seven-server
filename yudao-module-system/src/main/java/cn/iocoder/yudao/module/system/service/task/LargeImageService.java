@@ -27,6 +27,10 @@ public class LargeImageService {
     return largeImageMapper.deleteByIds(ids);
   }
 
+  public Integer deleteByArticleId(Long articleId){
+    return largeImageMapper.delete("article_id",String.valueOf(articleId));
+  }
+
   public Long querySumByArticleId(Long articleId) {
     QueryWrapper<LargeImageDO> wrapper = new QueryWrapper<>();
     wrapper.eq("article_id", articleId);

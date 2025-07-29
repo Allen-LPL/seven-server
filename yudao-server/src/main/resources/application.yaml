@@ -328,6 +328,8 @@ pf4j:
 
 #  mvn install -Dmaven.test.skip=true
 
+# scp /Users/fangliu/Downloads/ollama-linux-amd64.tgz root@server01:/data
+
 # scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@server01:/data/yudao
 
 # scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@api02:/data/yudao && ssh api02 "cd /data/yudao && ./deploy.sh"

@@ -15,9 +15,11 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileCreateRe
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryResVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.LargeImageService;
+import cn.iocoder.yudao.module.system.service.task.MilvusOperateService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -50,6 +52,9 @@ public class ArticleApiService {
   @Resource
   private DbImageProcessService dbImageProcessService;
 
+  @Resource
+  private MilvusOperateService milvusOperateService;
+
   public CommonResult<PageResult<FileQueryResVO>> pageQuery(FileQueryReqVO fileQueryReqVO) {
     PageResult<ArticleDO> pageResult = articleService.queryPage(fileQueryReqVO);
     PageResult<FileQueryResVO> finalResult = BeanUtils.toBean(pageResult, FileQueryResVO.class);
@@ -72,11 +77,28 @@ public class ArticleApiService {
     return CommonResult.success(sum);
   }
 
+
+  @Transactional(rollbackFor = Exception.class)
   public CommonResult<Integer> deleteById(Long id) {
     if (id == null) {
       return CommonResult.error(500, "请先选择文章");
     }
     Integer count = articleService.deleteById(id);
+    if (count > 0) {
+      throw new RuntimeException("删除文章失败： {}" + id);
+    }
+
+    largeImageService.deleteByArticleId(id);
+
+    smallImageService.deleteByArticleId(id);
+
+    List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(id);
+    List<Long> smallImageIds = smallImageDOList.stream().map(SmallImageDO::getId).collect(Collectors.toList());
+
+    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+      milvusOperateService.deleteByPrimaryId(smallImageIds, modelNameEnum.getCollectionName());
+    }
+
     return CommonResult.success(count);
   }
 
@@ -97,9 +119,8 @@ public class ArticleApiService {
     List<FileContent> fileList = imageTaskResDTO.getSuccessFile();
     List<String> filePathList = fileList.stream().map(FileContent::getFilePath).collect(Collectors.toList());
 
-    // todo 五个库
-    String collectionName = ModelNameEnum.ResNet50.getCollectionName();
-    dbImageProcessService.processFileBatchAsync(filePathList, reqVO.getFileType(),collectionName);
+    // 向量化
+    dbImageProcessService.processFileBatchAsync(filePathList, reqVO.getFileType());
 
     return CommonResult.success("success");
   }

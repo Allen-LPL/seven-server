@@ -67,16 +67,16 @@ public class DbImageProcessService {
   @Resource
   private MilvusOperateService milvusOperateService;
 
-  public void processFileBatchAsync(List<String> filePathList, String fileType, String collectionName){
+  public void processFileBatchAsync(List<String> filePathList, String fileType){
     CompletableFuture.runAsync(() -> {
-      processFileBatch(filePathList, fileType, collectionName);
+      processFileBatch(filePathList, fileType);
     }, taskExecutor);
   }
 
-  public void processFileBatch(List<String> filePathList, String fileType, String collectionName){
+  public void processFileBatch(List<String> filePathList, String fileType){
     for (String filePath : filePathList) {
       List<SmallImageMilvusDTO> smallImageMilvusDTOList = processFileSingle(filePath, fileType);
-      milvusOperateService.writeData(collectionName,smallImageMilvusDTOList);
+      milvusOperateService.writeDataAllCollection(smallImageMilvusDTOList);
     }
   }
 
@@ -224,7 +224,19 @@ public class DbImageProcessService {
       for(String modelName : vectorMap.keySet()) {
         if (modelName.equals(ModelNameEnum.ResNet50.getL2VectorName())){
           List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
-          smallImageMilvusDTO.setResnet50Vectors(floatList);
+          smallImageMilvusDTO.setResnet50(floatList);
+        }else if (modelName.equals(ModelNameEnum.DINOv2.getL2VectorName())){
+          List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
+          smallImageMilvusDTO.setDinoV2(floatList);
+        }else if (modelName.equals(ModelNameEnum.DenseNet121.getL2VectorName())){
+          List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
+          smallImageMilvusDTO.setDenseNet121(floatList);
+        }else if (modelName.equals(ModelNameEnum.CLIP.getL2VectorName())){
+          List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
+          smallImageMilvusDTO.setClipVit(floatList);
+        }else if (modelName.equals(ModelNameEnum.SwinTransformer.getL2VectorName())){
+          List<Float> floatList = vectorMap.get(modelName).stream().map(Double::floatValue).collect(Collectors.toList());
+          smallImageMilvusDTO.setSwinTransformer(floatList);
         }
       }
     }
@@ -285,6 +297,32 @@ public class DbImageProcessService {
     imageRequest.setSmallPrefixPath(String.format(FilePathConstant.DB_SMALL_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
     request.add(imageRequest);
     return request;
+  }
+
+
+  public void addArticleByFilePath(String filePath, String fileType) {
+    File root = new File(filePath);
+    File[] files = root.listFiles();
+    if (files == null) return;
+
+    List<String> fileList = Lists.newArrayList();
+    for (File file : files) {
+      if (file.isDirectory()) {
+        continue;
+      }
+      if (fileType.equals("pdf") && file.getName().endsWith(".pdf")) {
+        fileList.add(file.getAbsolutePath());
+      }else if (fileType.equals("image") && (file.getName().endsWith(".jpg") || file.getName().endsWith(".png"))) {
+        fileList.add(file.getAbsolutePath());
+      }
+    }
+
+    if (CollectionUtils.isAnyEmpty(fileList)){
+      log.warn("file Invalid , path {}",filePath);
+      return;
+    }
+
+    processFileBatch(fileList,fileType);
   }
 
 }

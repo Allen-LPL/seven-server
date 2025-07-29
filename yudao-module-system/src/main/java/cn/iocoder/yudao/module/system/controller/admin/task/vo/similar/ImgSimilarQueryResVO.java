@@ -42,6 +42,9 @@ public class ImgSimilarQueryResVO {
   @Schema(description = "相似分")
   private Double similarityScore;
 
+  @Schema(description = "相似度")
+  private Integer similarityLevel;
+
   @Schema(description = "模型名称")
   private String algorithmName;
 
@@ -74,4 +77,7 @@ public class ImgSimilarQueryResVO {
 
   @Schema(description = "特征点数量")
   private Integer featurePointCnt;
+
+  @Schema(description = "图片类型")
+  private String imageType;
 }

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "管理后台 - 任务管理-手动执行脚本")
@@ -150,6 +151,17 @@ public class ManualScriptController {
       return CommonResult.success("success");
     }catch (Exception e) {
       log.error("repeat processFile error: ，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @GetMapping("/add/articleByFilePath")
+  public CommonResult<String> addArticleByFilePath(@RequestParam String filePath, @RequestParam String fileType) {
+    try {
+      dbImageProcessService.addArticleByFilePath(filePath,fileType);
+      return CommonResult.success("success");
+    }catch (Exception e) {
+      log.info("addArticleByFilePath filePath={}, error:",filePath, e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }
