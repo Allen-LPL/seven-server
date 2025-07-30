@@ -248,7 +248,7 @@ public class TaskImageProcessService {
 
     // 9.查询图片类型
     log.info("【9/10】start query image type, taskId = {}", taskId);
-    //queryImageTypeService.queryImageType(allLargeList,allSmallList); todo
+    queryImageTypeService.queryImageType(allSmallList,taskId);
     log.info("【9/10】end query image type, taskId = {}", taskId);
 
     // 10.更新任务状态为专家审核

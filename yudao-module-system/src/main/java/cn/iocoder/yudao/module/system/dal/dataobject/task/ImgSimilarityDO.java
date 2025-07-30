@@ -58,4 +58,6 @@ public class ImgSimilarityDO extends BaseDO {
 
   private Integer featurePointCnt;
 
+  private String imageType;
+
 }
