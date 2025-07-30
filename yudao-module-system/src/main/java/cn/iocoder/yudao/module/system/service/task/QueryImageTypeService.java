@@ -31,34 +31,32 @@ public class QueryImageTypeService {
   private SmallImageService smallImageService;
 
   @Resource
-  private LargeImageService largeImageService;
+  private ImgSimilarityService imgSimilarityService;
 
   @Resource
   private TaskConfig taskConfig;
 
-  public void queryImageType(List<LargeImageDO> largeImageDOList, List<SmallImageDO> smallImageDOList) {
-
-    Map<Long,List<SmallImageDO>> largeSmallImageMap = smallImageDOList.stream().collect(Collectors.groupingBy(SmallImageDO::getLargeImageId));
+  public void queryImageType(List<SmallImageDO> smallImageDOList, Long taskId) {
 
     List<ImageTypeQueryDTO> batchList = Lists.newArrayList();
     int batch = 50;
-    for (LargeImageDO largeImage : largeImageDOList) {
+    for (SmallImageDO smallImageDO : smallImageDOList) {
       ImageTypeQueryDTO imageTypeQueryDTO = new ImageTypeQueryDTO();
-      imageTypeQueryDTO.setFilePath(largeImage.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
-      imageTypeQueryDTO.setId(largeImage.getId());
+      imageTypeQueryDTO.setFilePath(smallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+      imageTypeQueryDTO.setId(smallImageDO.getId());
       batchList.add(imageTypeQueryDTO);
       if (batchList.size() >= batch){
-        callImageType(batchList, largeSmallImageMap);
+        callImageType(batchList,taskId);
         batchList.clear();
       }
     }
     if (CollectionUtils.isNotEmpty(batchList)){
-      callImageType(batchList, largeSmallImageMap);
+      callImageType(batchList,taskId);
     }
 
   }
 
-  private void callImageType(List<ImageTypeQueryDTO> batchList,Map<Long,List<SmallImageDO>> largeSmallImageMap){
+  private void callImageType(List<ImageTypeQueryDTO> batchList, Long taskId){
     String response = HttpUtils.post(taskConfig.getClassifyImageUrl(),null, JSONObject.toJSONString(batchList));
     Optional<String> imageTypeResultStr = getImageTypeResultStr(batchList,response);
     if (!imageTypeResultStr.isPresent()) {
@@ -66,33 +64,31 @@ public class QueryImageTypeService {
     }
     List<String> imageTypeResult = JSONObject.parseArray(imageTypeResultStr.get(),String.class);
     List<SmallImageDO> updateSmallList = new ArrayList<>();
-    List<LargeImageDO> updateLargeList = new ArrayList<>();
+    List<ImgSimilarityDO> imgSimilarityDOS = new ArrayList<>();
     for (int i=0;i<batchList.size();i++) {
 
       String type = imageTypeResult.get(i);
       ImageTypeQueryDTO imageTypeQueryDTO = batchList.get(i);
 
-      LargeImageDO largeImageDO = new LargeImageDO();
-      largeImageDO.setId(imageTypeQueryDTO.getId());
-      largeImageDO.setImageType(type);
-      updateLargeList.add(largeImageDO);
+      SmallImageDO smallImageDO = new SmallImageDO();
+      smallImageDO.setId(imageTypeQueryDTO.getId());
+      smallImageDO.setImageType(type);
+      updateSmallList.add(smallImageDO);
 
-      List<SmallImageDO> smallImageDOList = largeSmallImageMap.getOrDefault(imageTypeQueryDTO.getId(),Lists.newArrayList());
-      smallImageDOList.stream().forEach(smallImageDO -> {
-        SmallImageDO update = new SmallImageDO();
-        update.setId(smallImageDO.getId());
-        update.setImageType(type);
-        updateSmallList.add(update);
-      });
+      ImgSimilarityDO similarityDO = new ImgSimilarityDO();
+      similarityDO.setSourceSmallImageId(imageTypeQueryDTO.getId());
+      similarityDO.setTaskId(taskId);
+      similarityDO.setImageType(type);
+      imgSimilarityDOS.add(similarityDO);
     }
-    Boolean flag = largeImageService.updateBatch(updateLargeList);
+    Boolean flag = smallImageService.updateBatch(updateSmallList);
     if (!flag) {
-      log.error("update feature point failed");
+      log.error("update image type failed");
     }
-    flag = smallImageService.updateBatch(updateSmallList);
-    if (!flag) {
-      log.error("update feature point failed");
+    for (ImgSimilarityDO imgSimilarityDO : imgSimilarityDOS) {
+      imgSimilarityService.updateByImageType(imgSimilarityDO);
     }
+
   }
 
   private Optional<String> getImageTypeResultStr(List<ImageTypeQueryDTO> batchList, String response) {

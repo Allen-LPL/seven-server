@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImgSimilarityMapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import java.util.List;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,14 @@ public class ImgSimilarityService {
 
   public Boolean updateBatch (List<ImgSimilarityDO> image) {
     return imgSimilarityMapper.updateBatch(image);
+  }
+
+  public Integer updateByImageType(ImgSimilarityDO image) {
+    UpdateWrapper<ImgSimilarityDO> updateWrapper = new UpdateWrapper<>();
+    updateWrapper.eq("task_id", image.getTaskId());
+    updateWrapper.eq("source_small_image_id", image.getSourceSmallImageId());
+    updateWrapper.set("image_type",image.getImageType());
+    return imgSimilarityMapper.update(updateWrapper);
   }
 
 }
