@@ -15,7 +15,9 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimila
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCompleteReviewReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
@@ -23,6 +25,7 @@ import cn.iocoder.yudao.module.system.enums.task.FeaturePointsEnum;
 import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.ImageTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
+import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
@@ -59,6 +62,9 @@ public class ImgSimilarApiService {
 
   @Resource
   private SmallImageService smallImageService;
+
+  @Resource
+  private ImageTaskService imageTaskService;
 
   @Resource
   private TaskConfig taskConfig;
@@ -154,6 +160,33 @@ public class ImgSimilarApiService {
     if (Objects.isNull(sum) || sum < 1){
       return CommonResult.error(500, "审核失败，请联系管理员");
     }
+    return CommonResult.success("success");
+  }
+
+  /**
+   * 完成审核
+   *
+   * @param reqVO 请求参数
+   * @return 操作结果
+   */
+  public CommonResult<String> completeReview(ImageTaskCompleteReviewReqVO reqVO) {
+    Long taskId = reqVO.getTaskId();
+    if (Objects.isNull(taskId)) {
+      return CommonResult.error(500, "任务ID不能为空");
+    }
+    ImageTaskDO imageTaskDO = imageTaskService.getById(taskId);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + taskId + "】");
+    }
+
+    ImageTaskDO updateImageTask = new ImageTaskDO();
+    updateImageTask.setId(taskId);
+    updateImageTask.setReviewResult(reqVO.getReviewResult());
+    updateImageTask.setTaskStatus(TaskStatusEnum.COMPLETE.getCode()); // 设置为审核完成状态
+    updateImageTask.setReviewTime(LocalDateTime.now());
+    updateImageTask.setUpdater(String.valueOf(WebFrameworkUtils.getLoginUserId()));
+
+    imageTaskService.update(updateImageTask);
     return CommonResult.success("success");
   }
 

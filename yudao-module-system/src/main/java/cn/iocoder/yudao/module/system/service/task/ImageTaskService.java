@@ -46,6 +46,10 @@ public class ImageTaskService {
     if (Objects.nonNull(imageTaskDO.getTotalImages())){
       updateWrapper.set("total_images", imageTaskDO.getTotalImages());
     }
+    if (Objects.nonNull(imageTaskDO.getReviewResult())){
+      updateWrapper.set("review_result", imageTaskDO.getReviewResult());
+      updateWrapper.set("review_time", LocalDateTime.now());
+    }
     updateWrapper.set("update_time", LocalDateTime.now());
     updateWrapper.eq("id", imageTaskDO.getId());
     return imageTaskMapper.update(updateWrapper);

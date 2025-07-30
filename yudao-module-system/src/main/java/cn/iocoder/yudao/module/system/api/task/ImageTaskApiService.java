@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.adminUser.AdminUserVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
@@ -23,6 +24,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.dal.mysql.user.AdminUserInfoServiceImpl;
 import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
@@ -72,6 +74,9 @@ public class ImageTaskApiService {
   @Resource
   private TaskImageProcessService imageProcessService;
 
+  @Resource
+  private AdminUserInfoServiceImpl userInfoService;
+
 
   public PageResult<ImageTaskQueryResDTO> query(ImageTaskQueryReqVO imageTaskQueryReqVO){
 
@@ -101,21 +106,21 @@ public class ImageTaskApiService {
       queryResDTO.setRole(roleDo.getCode());
 
       // 补充创建用户信息
-      if (roleDo.getCode().equalsIgnoreCase("super_admin") || roleDo.getCode().equalsIgnoreCase("Research_admin")){
+//      if (roleDo.getCode().equalsIgnoreCase("super_admin") || roleDo.getCode().equalsIgnoreCase("Research_admin")){
         AdminUserDO createUser = adminUserService.getUser(queryResDTO.getCreatorId());
         if (Objects.nonNull(createUser)) {
-          queryResDTO.setUserName(createUser.getUsername());
+          queryResDTO.setUserName(createUser.getNickname());
           DeptDO deptDO = deptService.getDept(createUser.getDeptId());
           if (Objects.nonNull(deptDO)) {
             queryResDTO.setUserUnit(deptDO.getName());
           }
         }
-      }
+//      }
 
 
       // 补充审核用户信息
-      if (!roleDo.getCode().equalsIgnoreCase("Common")){
-        AdminUserDO reviewUser = adminUserService.getUser(queryResDTO.getReviewerId());
+      if (queryResDTO.getReviewerId() != null){
+         AdminUserVO reviewUser = userInfoService.getUserById(queryResDTO.getReviewerId());
         if (Objects.nonNull(reviewUser)) {
           queryResDTO.setReviewUserName(reviewUser.getUsername());
           DeptDO reviewDeptDO = deptService.getDept(reviewUser.getDeptId());

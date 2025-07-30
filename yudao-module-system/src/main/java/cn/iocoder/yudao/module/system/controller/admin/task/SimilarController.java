@@ -15,15 +15,8 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimila
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityReviewReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCommentReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskAllocateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCreateResVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
-import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCompleteReviewReqVO;
 import com.alibaba.fastjson.JSONObject;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.annotation.Resource;
@@ -93,6 +86,17 @@ public class SimilarController {
       return imgSimilarApiService.deleteComment(id);
     } catch (Exception e) {
       log.error("删除审核意见失败，", e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  @Operation(summary = "完成审核")
+  @PostMapping("/complete-review")
+  public CommonResult<String> completeReview(@RequestBody ImageTaskCompleteReviewReqVO reqVO) {
+    try {
+      return imgSimilarApiService.completeReview(reqVO);
+    } catch (Exception e) {
+      log.error("完成审核失败，", e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }
