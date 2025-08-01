@@ -123,11 +123,11 @@ public class ImgSimilarApiService {
       if (Objects.isNull(featurePoints)) {
         featurePoints = 0;
       }
-      if (featurePoints>=0 && featurePoints<=1){
+      if (featurePoints>=1 && featurePoints<=5){
         imgSimilarQueryResVO.setSimilarityLevel(SimilarLevelEnum.light.getLevel());
-      }else if (featurePoints>=2 && featurePoints<5){
+      }else if (featurePoints>=6 && featurePoints<26){
         imgSimilarQueryResVO.setSimilarityLevel(SimilarLevelEnum.middle.getLevel());
-      }else if (featurePoints >= 5){
+      }else if (featurePoints >= 26){
         imgSimilarQueryResVO.setSimilarityLevel(SimilarLevelEnum.weight.getLevel());
       }
       imgSimilarQueryResVO.setSimilarityScore(imgSimilarQueryResVO.getSimilarityScore()*100);
