@@ -81,14 +81,23 @@ public class ImgSimilarApiService {
     if (CollectionUtils.isAnyEmpty(userRoles)){
       throw new RuntimeException("用户未分配角色");
     }
-    RoleDO roleDo = userRoles.get(0);
 
+    // 填充默认值
     if (CollectionUtils.isAnyEmpty(reqVO.getModelNameList())){
       reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
     }
     if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
       reqVO.setSimilarScoreThreshold(reqVO.getSimilarScoreThreshold()/100);
+    }else {
+      reqVO.setSimilarScoreThreshold(ModelNameEnum.DenseNet121.getScore());
     }
+    if (Objects.isNull(reqVO.getFeaturePoints())){
+      reqVO.setFeaturePoints(5);
+    }
+    if (CollectionUtils.isAnyEmpty(reqVO.getImageTypeList())){
+      reqVO.setImageTypeList(Lists.newArrayList(ImageTypeEnum.MEDICAL.getCode()));
+    }
+
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();
