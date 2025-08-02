@@ -3,8 +3,8 @@ package cn.iocoder.yudao.module.system.api.task;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.system.api.task.dto.SmallImageMilvusDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileUpdateReqVO;
 import cn.iocoder.yudao.module.system.api.task.common.DbImageProcessService;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
@@ -26,6 +26,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.compress.utils.Lists;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -71,16 +73,31 @@ public class ArticleApiService {
   }
 
   public CommonResult<Integer> batchDelete(List<Long> ids) {
-    if (CollectionUtils.isAnyEmpty(ids)){
+    if (CollectionUtils.isEmpty(ids)){
       return CommonResult.error(500, "请先选择文章");
     }
-    Integer sum = articleService.batchDelete(ids);
-    return CommonResult.success(sum);
+    for (long id : ids) {
+      CommonResult<Integer> result = deleteById(id);
+      if (!result.isSuccess()){
+        log.error("delete article id [{}] fail", id);
+      }
+    }
+    return CommonResult.success(ids.size());
   }
 
 
   @Transactional(rollbackFor = Exception.class)
   public CommonResult<Integer> deleteById(Long id) {
+
+    log.info("deleteArticleById【1/4】start delete milvus, articleId = {}", id);
+    List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(id);
+    List<Long> smallImageIds = smallImageDOList.stream().map(SmallImageDO::getId).collect(Collectors.toList());
+    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+      milvusOperateService.deleteByPrimaryId(smallImageIds, modelNameEnum.getCollectionName());
+    }
+    log.info("deleteArticleById【1/4】end delete milvus, articleId = {}, smallSize", id);
+
+    log.info("deleteArticleById【2/4】start delete article, id = {}", id);
     if (id == null) {
       return CommonResult.error(500, "请先选择文章");
     }
@@ -88,17 +105,15 @@ public class ArticleApiService {
     if (count > 0) {
       throw new RuntimeException("删除文章失败： {}" + id);
     }
+    log.info("deleteArticleById【2/4】end delete article, id = {}", id);
 
-    largeImageService.deleteByArticleId(id);
+    log.info("deleteArticleById【3/4】start delete large image, articleId = {}", id);
+    count = largeImageService.deleteByArticleId(id);
+    log.info("deleteArticleById【3/4】end delete large image, articleId = {}, count = {}", id,count);
 
-    smallImageService.deleteByArticleId(id);
-
-    List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(id);
-    List<Long> smallImageIds = smallImageDOList.stream().map(SmallImageDO::getId).collect(Collectors.toList());
-
-    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
-      milvusOperateService.deleteByPrimaryId(smallImageIds, modelNameEnum.getCollectionName());
-    }
+    log.info("deleteArticleById【4/4】start delete small image, articleId = {}", id);
+    count = smallImageService.deleteByArticleId(id);
+    log.info("deleteArticleById【4/4】end delete small image, articleId = {}, count = {}", id,count);
 
     return CommonResult.success(count);
   }
@@ -106,29 +121,39 @@ public class ArticleApiService {
   @Transactional(rollbackFor = Exception.class)
   public CommonResult<String> create(FileCreateReqVO reqVO){
 
-    // 任务ID
+    // 获取文件上传地址
+    log.info("createArticle【1/4】start get file path, fileType = {}", reqVO.getFileType());
     String filePath = String.format(UPLOAD_PATH, UUID.randomUUID());
+    log.info("createArticle【1/4】end get file path, fileType = {}", reqVO.getFileType());
 
     // 上传文件
+    log.info("createArticle【2/4】start upload file");
     MultipartFile[] files = reqVO.getFiles();
     ImageTaskCreateResDTO imageTaskResDTO = fileUploadService.uploadFiles(files, filePath);
-    if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isAnyEmpty(imageTaskResDTO.getSuccessFile())) {
+    if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isEmpty(imageTaskResDTO.getSuccessFile())) {
       return CommonResult.error(500, "文件上传失败");
     }
+    log.info("createArticle【2/4】end upload file");
 
     // 创建文件并异步解析PDF
+    log.info("createArticle【3/4】start parse pdf");
     List<FileContent> fileList = imageTaskResDTO.getSuccessFile();
     List<String> filePathList = fileList.stream().map(FileContent::getFilePath).collect(Collectors.toList());
+    log.info("createArticle【3/4】end parse pdf");
 
     // 向量化
+    log.info("createArticle【4/4】start vector");
     dbImageProcessService.processFileBatchAsync(filePathList, reqVO.getFileType());
+    log.info("createArticle【4/4】end vector");
 
     return CommonResult.success("success");
   }
 
 
   public void updateFilesInBatch(FileUpdateReqVO updateReqVO) {
-    // 遍历请求中的每个文件更新项
+
+    log.info("updateFilesInBatch【1/3】start assemble param");
+    List<ArticleDO> articleDOList = Lists.newArrayList();
     for (FileUpdateReqVO.FileUpdateItem item : updateReqVO.getFiles()) {
       // 创建一个 ArticleDO 对象用于更新
       ArticleDO articleUpdate = new ArticleDO();
@@ -136,11 +161,41 @@ public class ArticleApiService {
       articleUpdate.setArticleTitle(item.getArticleTitle());
       articleUpdate.setArticleJournal(item.getArticleJournal());
       articleUpdate.setAuthorName(item.getAuthorName());
-
-      // 调用 Mapper 更新数据库中的记录
-      articleMapper.updateById(articleUpdate);
+      articleDOList.add(articleUpdate);
     }
-    log.info("【updateFilesInBatch】成功批量更新了 {} 条文件内容。", updateReqVO.getFiles().size());
+    log.info("updateFilesInBatch【1/3】end assemble param, size={}", articleDOList.size());
+
+    // 调用 Mapper 更新数据库中的记录
+    log.info("updateFilesInBatch【2/3】start update article");
+    Boolean flag = articleMapper.updateBatch(articleDOList);
+    log.info("updateFilesInBatch【2/3】end update article, flag={}, size = {}", flag, articleDOList.size());
+
+    // 开始更新Milvus
+    log.info("updateFilesInBatch【3/3】start update milvus");
+    int batch = 50;
+    List<SmallImageMilvusDTO> smallImageMilvusDTOList = Lists.newArrayList();
+    for (ArticleDO articleDO : articleDOList) {
+      List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(articleDO.getId());
+      ArticleDO newArticle = articleService.batchQueryById(articleDO.getId());
+      for (SmallImageDO smallImageDO : smallImageDOList) {
+        SmallImageMilvusDTO imageMilvusDTO = new SmallImageMilvusDTO();
+        imageMilvusDTO.setId(smallImageDO.getId());
+        imageMilvusDTO.setArticleId(newArticle.getId());
+        imageMilvusDTO.setKeywords(newArticle.getArticleKeywords());
+        imageMilvusDTO.setAuthor(newArticle.getAuthorName());
+        imageMilvusDTO.setInstitution(newArticle.getAuthorInstitution());
+        imageMilvusDTO.setArticleDate(newArticle.getArticleDate());
+        imageMilvusDTO.setSpecialty(newArticle.getMedicalSpecialty());
+        smallImageMilvusDTOList.add(imageMilvusDTO);
+        if (smallImageMilvusDTOList.size() >= batch){
+          milvusOperateService.updateByPrimaryId(smallImageMilvusDTOList);
+        }
+      }
+    }
+    if (CollectionUtils.isNotEmpty(smallImageMilvusDTOList)){
+      milvusOperateService.updateByPrimaryId(smallImageMilvusDTOList);
+    }
+    log.info("updateFilesInBatch【3/3】end update milvus");
   }
 
 }

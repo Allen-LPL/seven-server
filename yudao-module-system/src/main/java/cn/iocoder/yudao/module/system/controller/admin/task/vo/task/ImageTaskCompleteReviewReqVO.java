@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.system.controller.admin.task.vo.task;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 import lombok.Data;
 
 import javax.validation.constraints.NotNull;
@@ -16,5 +17,17 @@ public class ImageTaskCompleteReviewReqVO {
     @Schema(description = "审核结果(2检测无异常,3检测有异常)", required = true, example = "2")
     @NotNull(message = "审核结果不能为空")
     private Integer reviewResult;
+
+    @Schema(description = "算法")
+    private List<String> modelNameList;
+
+    @Schema(description = "图像类型")
+    private List<String> imageTypeList;
+
+    @Schema(description = "特征点数量")
+    private Integer featurePoints = 5;
+
+    @Schema(description = "相似度")
+    private Double similarScoreThreshold;
 
 } 

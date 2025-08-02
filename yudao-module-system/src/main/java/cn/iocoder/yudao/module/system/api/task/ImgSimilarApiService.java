@@ -2,7 +2,6 @@ package cn.iocoder.yudao.module.system.api.task;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
@@ -39,10 +38,12 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import cn.iocoder.yudao.module.system.enums.task.SimilarLevelEnum;
+
 
 @Service
 @Slf4j
@@ -94,7 +95,7 @@ public class ImgSimilarApiService {
     if (Objects.isNull(reqVO.getFeaturePoints())){
       reqVO.setFeaturePoints(5);
     }
-    if (CollectionUtils.isAnyEmpty(reqVO.getImageTypeList())){
+    if (CollectionUtils.isEmpty(reqVO.getImageTypeList())){
       reqVO.setImageTypeList(Lists.newArrayList(ImageTypeEnum.MEDICAL.getCode()));
     }
 
@@ -194,6 +195,19 @@ public class ImgSimilarApiService {
     updateImageTask.setTaskStatus(TaskStatusEnum.COMPLETE.getCode()); // 设置为审核完成状态
     updateImageTask.setReviewTime(LocalDateTime.now());
     updateImageTask.setUpdater(String.valueOf(WebFrameworkUtils.getLoginUserId()));
+    // 阈值
+    if (CollectionUtils.isNotEmpty(reqVO.getModelNameList())){
+      updateImageTask.setModelList(JSONObject.toJSONString(reqVO.getModelNameList()));
+    }
+    if (CollectionUtils.isNotEmpty(reqVO.getImageTypeList())){
+      updateImageTask.setImageTypeList(JSONObject.toJSONString(reqVO.getImageTypeList()));
+    }
+    if (Objects.nonNull(reqVO.getFeaturePoints())){
+      updateImageTask.setFeaturePoints(reqVO.getFeaturePoints());
+    }
+    if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
+      updateImageTask.setSimilarThreshold(reqVO.getSimilarScoreThreshold());
+    }
 
     imageTaskService.update(updateImageTask);
     return CommonResult.success("success");

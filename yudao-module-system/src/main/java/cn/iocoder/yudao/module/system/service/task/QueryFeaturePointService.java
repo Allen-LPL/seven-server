@@ -34,6 +34,9 @@ public class QueryFeaturePointService {
   private TaskConfig taskConfig;
 
   public void queryFeaturePoints(List<ImgSimilarityDO> recallList) {
+    if (CollectionUtils.isEmpty(recallList)) {
+      return;
+    }
 
     Set<Long> smallImageIdSet = recallList.stream().map(ImgSimilarityDO::getSourceSmallImageId).collect(Collectors.toSet());
     Set<Long> targetImageIdSet = recallList.stream().map(ImgSimilarityDO::getTargetSmallImageId).collect(Collectors.toSet());
@@ -41,7 +44,7 @@ public class QueryFeaturePointService {
     List<SmallImageDO> smallImageDOList = smallImageService.queryByIds(smallImageIdSet);
     Map<Long, SmallImageDO> smallImageDOMap = smallImageDOList.stream().collect(Collectors.toMap(SmallImageDO::getId, x->x));
 
-    int batch = 10;
+    int batch = 50;
     List<FeaturePointQueryDTO> batchList = new ArrayList<>();
     for (ImgSimilarityDO recall : recallList) {
       FeaturePointQueryDTO queryDTO = new FeaturePointQueryDTO();

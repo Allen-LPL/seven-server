@@ -3,7 +3,9 @@ package cn.iocoder.yudao.module.system.dal.dataobject.task;
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -86,5 +88,13 @@ public class ImageTaskDO extends BaseDO {
   private String fileType;
 
   private String taskNo;
+
+  private String modelList;
+
+  private String imageTypeList;
+
+  private Integer featurePoints = 5;
+
+  private Double similarThreshold;
 
 }

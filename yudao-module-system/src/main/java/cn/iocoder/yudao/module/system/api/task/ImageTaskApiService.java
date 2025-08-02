@@ -164,6 +164,7 @@ public class ImageTaskApiService {
   public ImageTaskCreateResDTO createTask(ImageTaskCreateReqVO reqVO){
 
     // 参数检测
+    log.info("createTask【1/8】start parse strategy param");
     if (reqVO.getTaskType() == 2) {
       if (Objects.isNull(reqVO.getTaskStrategyConfig()) ||
           (Objects.isNull(reqVO.getTaskStrategyConfig().getStartTime()) && Objects.isNull(reqVO.getTaskStrategyConfig().getEndTime())
@@ -172,8 +173,10 @@ public class ImageTaskApiService {
         throw new RuntimeException("策略查，必须传策略参数");
       }
     }
+    log.info("createTask【1/8】end parse strategy param");
 
     // 创建任务
+    log.info("createTask【2/8】start insert task");
     ImageTaskDO imageTaskDO = new ImageTaskDO();
     imageTaskDO.setCreatorId(WebFrameworkUtils.getLoginUserId());
     imageTaskDO.setTaskType(reqVO.getTaskType());
@@ -185,18 +188,25 @@ public class ImageTaskApiService {
     if (Objects.isNull(sum) || sum < 1){
       throw new RuntimeException("任务入库失败");
     }
+    log.info("createTask【2/8】end insert task, taskId={}, taskType={}", imageTaskDO.getId(),reqVO.getTaskType());
+
 
     // 任务ID
+    log.info("createTask【3/8】start get filePath");
     String filePath = String.format(FilePathConstant.UPLOAD_PATH, imageTaskDO.getId());
+    log.info("createTask【3/8】end get filePath, filePath={}", filePath);
 
     // 上传文件
+    log.info("createTask【4/8】start upload file");
     MultipartFile[] files = reqVO.getFiles();
     ImageTaskCreateResDTO imageTaskResDTO = fileUploadService.uploadFiles(files, filePath);
     if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isAnyEmpty(imageTaskResDTO.getSuccessFile())) {
       return imageTaskResDTO;
     }
+    log.info("createTask【4/8】end upload file");
 
     // 更新任务
+    log.info("createTask【5/8】start update task");
     List<FileContent> fileList = imageTaskResDTO.getSuccessFile();
     ImageTaskDO updateTask = new ImageTaskDO();
     updateTask.setId(imageTaskDO.getId());
@@ -204,8 +214,10 @@ public class ImageTaskApiService {
     updateTask.setTaskNo("RW"+ LocalDateTimeUtil.format(LocalDateTime.now(), DatePattern.PURE_DATE_PATTERN)
         + imageTaskDO.getId());
     imageTaskService.update(updateTask);
+    log.info("createTask【5/8】end update task, taskId={}, fileSize={}", imageTaskDO.getId(),fileList.size());
 
     // 创建文件并异步解析PDF
+    log.info("createTask【6/8】start parse pdf and insert article");
     List<ArticleDO> articleDOList = Lists.newArrayList();
     for (FileContent fileContent : fileList) {
       ArticleDO articleDO = new ArticleDO();
@@ -241,16 +253,20 @@ public class ImageTaskApiService {
     if (!success){
       throw new RuntimeException("任务入库失败");
     }
+    log.info("createTask【6/8】end parse pdf and insert article, taskId={}", imageTaskDO.getId());
 
     // 异步算法检测
-    log.info("commit async");
+    log.info("createTask【7/8】start commit async");
     imageProcessService.processAsync(imageTaskDO.getId());
+    log.info("createTask【7/8】end commit async");
 
     // 更新任务状态为算法检测中
+    log.info("createTask【8/8】start update task, taskId={}", imageTaskDO.getId());
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();
     updateImageTaskStatus.setId(imageTaskDO.getId());
     updateImageTaskStatus.setTaskStatus(TaskStatusEnum.ALGO_DETECT.getCode());
     imageTaskService.update(updateImageTaskStatus);
+    log.info("createTask【8/8】end update task, taskId={}", imageTaskDO.getId());
 
     return imageTaskResDTO;
   }

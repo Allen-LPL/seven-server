@@ -17,11 +17,13 @@ import io.milvus.param.R;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.response.SearchResultsWrapper;
 import io.milvus.response.SearchResultsWrapper.IDScore;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -57,16 +59,20 @@ public class MilvusRecallService {
     if (StringUtils.isNotBlank(strategy)) {
       TaskStrategyConfig taskStrategyConfig = JSONObject.parseObject(strategy, TaskStrategyConfig.class);
       if (Objects.nonNull(taskStrategyConfig.getStartTime())){
-        exprList.add( MilvusConstant.articleDate + " >= "+taskStrategyConfig.getStartTime());
+        long timestamp = taskStrategyConfig.getStartTime().atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli();
+        exprList.add( MilvusConstant.articleDate + " >= "+timestamp);
       }else if (Objects.nonNull(taskStrategyConfig.getEndTime())){
-        exprList.add(MilvusConstant.articleDate +" <= "+taskStrategyConfig.getEndTime());
+        long timestamp = taskStrategyConfig.getEndTime().atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli();
+        exprList.add(MilvusConstant.articleDate +" <= "+timestamp);
       }else if (Objects.nonNull(taskStrategyConfig.getMedicalSpecialty())){
         exprList.add( MilvusConstant.specialty +" == '"+taskStrategyConfig.getMedicalSpecialty()+"'");
       }else if (CollectionUtils.isNotEmpty(taskStrategyConfig.getKeywordList())){
-        String keywords = "[";
-        keywords += StringUtils.join(taskStrategyConfig.getKeywordList(), ",");
-        keywords += "]";
-        exprList.add(MilvusConstant.keywords + "in " + keywords);
+        //exprList.add(MilvusConstant.keywords + " in " + convertListToMilvusExpression(taskStrategyConfig.getKeywordList()));
+        exprList.add(buildArrayKeywordExpression(taskStrategyConfig.getKeywordList()));
       }
     }
     String exp = "";
@@ -120,6 +126,13 @@ public class MilvusRecallService {
     }
     log.info("milvus recall use {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     return result;
+  }
+
+  private String buildArrayKeywordExpression(List<String> keywords) {
+    String values = keywords.stream()
+        .map(keyword -> String.format("\"%s\"", keyword))
+        .collect(Collectors.joining(", "));
+    return String.format("ARRAY_CONTAINS_ANY(keywords, [%s])", values);
   }
 
   private static String getCollectionName(String model) {
