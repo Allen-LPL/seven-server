@@ -79,12 +79,12 @@ public class ImgSimilarApiService {
       throw new RuntimeException("用户未登录");
     }
     List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
-    if (CollectionUtils.isAnyEmpty(userRoles)){
+    if (CollectionUtils.isEmpty(userRoles)){
       throw new RuntimeException("用户未分配角色");
     }
 
     // 填充默认值
-    if (CollectionUtils.isAnyEmpty(reqVO.getModelNameList())){
+    if (CollectionUtils.isEmpty(reqVO.getModelNameList())){
       reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
     }
     if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
