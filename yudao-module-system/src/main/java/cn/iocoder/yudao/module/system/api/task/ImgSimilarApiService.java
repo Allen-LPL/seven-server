@@ -50,6 +50,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import cn.iocoder.yudao.module.system.enums.task.SimilarLevelEnum;
 
+
 @Service
 @Slf4j
 public class ImgSimilarApiService {
@@ -95,14 +96,23 @@ public class ImgSimilarApiService {
     if (CollectionUtils.isEmpty(userRoles)){
       throw new RuntimeException("用户未分配角色");
     }
-    RoleDO roleDo = userRoles.get(0);
 
+    // 填充默认值
     if (CollectionUtils.isEmpty(reqVO.getModelNameList())){
       reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
     }
     if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
       reqVO.setSimilarScoreThreshold(reqVO.getSimilarScoreThreshold()/100);
+    }else {
+      reqVO.setSimilarScoreThreshold(ModelNameEnum.DenseNet121.getScore());
     }
+    if (Objects.isNull(reqVO.getFeaturePoints())){
+      reqVO.setFeaturePoints(5);
+    }
+    if (CollectionUtils.isEmpty(reqVO.getImageTypeList())){
+      reqVO.setImageTypeList(Lists.newArrayList(ImageTypeEnum.MEDICAL.getCode()));
+    }
+
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();
@@ -199,6 +209,19 @@ public class ImgSimilarApiService {
     updateImageTask.setTaskStatus(TaskStatusEnum.COMPLETE.getCode()); // 设置为审核完成状态
     updateImageTask.setReviewTime(LocalDateTime.now());
     updateImageTask.setUpdater(String.valueOf(WebFrameworkUtils.getLoginUserId()));
+    // 阈值
+    if (CollectionUtils.isNotEmpty(reqVO.getModelNameList())){
+      updateImageTask.setModelList(JSONObject.toJSONString(reqVO.getModelNameList()));
+    }
+    if (CollectionUtils.isNotEmpty(reqVO.getImageTypeList())){
+      updateImageTask.setImageTypeList(JSONObject.toJSONString(reqVO.getImageTypeList()));
+    }
+    if (Objects.nonNull(reqVO.getFeaturePoints())){
+      updateImageTask.setFeaturePoints(reqVO.getFeaturePoints());
+    }
+    if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
+      updateImageTask.setSimilarThreshold(reqVO.getSimilarScoreThreshold());
+    }
 
     imageTaskService.update(updateImageTask);
     return CommonResult.success("success");

@@ -36,6 +36,7 @@ import io.milvus.param.collection.ReleaseCollectionParam;
 import io.milvus.param.dml.DeleteParam;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.dml.InsertParam.Field;
+import io.milvus.param.dml.UpsertParam;
 import io.milvus.param.highlevel.dml.DeleteIdsParam;
 import io.milvus.param.highlevel.dml.response.DeleteResponse;
 import io.milvus.param.index.CreateIndexParam;
@@ -135,10 +136,10 @@ public class MilvusOperateService {
   }
 
   public void batchWriteDataFromDb(String newName,ModelNameEnum modelNameEnum){
-    //Long maxId = articleService.maxId();
-    //Long minId = articleService.minId();
-    Long maxId = 377L;
-    Long minId = 355L;
+    Long maxId = articleService.maxId();
+    Long minId = articleService.minId();
+//    Long maxId = 377L;
+//    Long minId = 355L;
     int batch = 10;
 
     while (true){
@@ -481,5 +482,64 @@ public class MilvusOperateService {
     R<DeleteResponse> deleteResponseR = imageMilvusClient.delete(deleteIdsParam);
     log.info("delete response : {}", JSONObject.toJSONString(deleteResponseR));
     return  deleteResponseR!=null && deleteResponseR.getStatus() == 0;
+  }
+
+  public void updateByPrimaryId(List<SmallImageMilvusDTO> smallImageMilvusDTOS) {
+
+    List<Long> imageIdList = Lists.newArrayList();
+    List<List<String>> keywordList = Lists.newArrayList();
+    List<List<String>> authorList = Lists.newArrayList();
+    List<List<String>> institutionList = Lists.newArrayList();
+    List<Long> articleDateList = Lists.newArrayList();
+    List<String> specialtyList = Lists.newArrayList();
+
+    for (SmallImageMilvusDTO imageMilvusDTO : smallImageMilvusDTOS) {
+      imageIdList.add(imageMilvusDTO.getId());
+      if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getKeywords())){
+        keywordList.add(Lists.newArrayList());
+      }else {
+        keywordList.add(imageMilvusDTO.getKeywords().subList(0,Math.min(imageMilvusDTO.getKeywords().size(),5)));
+      }
+      if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getAuthor())){
+        authorList.add(Lists.newArrayList());
+      }else {
+        authorList.add(imageMilvusDTO.getAuthor().subList(0,Math.min(imageMilvusDTO.getAuthor().size(),5)));
+      }
+      if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getInstitution())){
+        institutionList.add(Lists.newArrayList());
+      } else {
+        institutionList.add(imageMilvusDTO.getInstitution().subList(0,Math.min(imageMilvusDTO.getInstitution().size(),5)));
+      }
+
+      if (Objects.isNull(imageMilvusDTO.getArticleDate())){
+        articleDateList.add(0L);
+      }else {
+        articleDateList.add(imageMilvusDTO.getArticleDate());
+      }
+
+      if (StringUtils.isNotBlank(imageMilvusDTO.getSpecialty())){
+        specialtyList.add(imageMilvusDTO.getSpecialty());
+      }else {
+        specialtyList.add("");
+      }
+    }
+
+    List<Field> fieldDataList = Lists.newArrayList();
+    fieldDataList.add(new InsertParam.Field(MilvusConstant.imageId, imageIdList));
+    fieldDataList.add(new InsertParam.Field(MilvusConstant.keywords, keywordList));
+    fieldDataList.add(new InsertParam.Field(MilvusConstant.author, authorList));
+    fieldDataList.add(new InsertParam.Field(MilvusConstant.institution, institutionList));
+    fieldDataList.add(new InsertParam.Field(MilvusConstant.articleDate,  articleDateList));
+    fieldDataList.add(new InsertParam.Field(MilvusConstant.specialty,  specialtyList));
+
+    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+      UpsertParam upsertParam = UpsertParam.newBuilder().withCollectionName(modelNameEnum.getCollectionName())
+          .withFields(fieldDataList).build();
+      R<MutationResult>  resultR = imageMilvusClient.upsert(upsertParam);
+      log.info("update response : {}", JSONObject.toJSONString(resultR));
+      if (resultR == null || resultR.getStatus() != 0) {
+        log.error("update error : {}", JSONObject.toJSONString(resultR));
+      }
+    }
   }
 }

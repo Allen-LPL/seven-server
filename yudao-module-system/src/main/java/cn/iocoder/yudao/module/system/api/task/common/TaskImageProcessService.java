@@ -119,7 +119,7 @@ public class TaskImageProcessService {
     Integer taskType = imageTaskDO.getTaskType();
 
     // 1.pdf解析
-    log.info("【1/10】start parse pdf, taskId = {}", taskId);
+    log.info("processAsync【1/10】start parse pdf, taskId = {}", taskId);
     List<ArticleDO> articleDOList  = articleService.queryListByTaskId(taskId);
     if (FileTypeEnum.PDF.getCode().equals(fileType)){
       for (ArticleDO articleDO : articleDOList) {
@@ -134,10 +134,10 @@ public class TaskImageProcessService {
       }
       articleService.updateBatch(articleDOList);
     }
-    log.info("【1/10】end parse pdf, taskId = {}", taskId);
+    log.info("processAsync【1/10】end parse pdf, taskId = {}, article size = {}", taskId, articleDOList.size());
 
     // 2.调py接口：切割大图小图 & 小图向量化
-    log.info("【2/10】start cut image, taskId = {}", taskId);
+    log.info("processAsync【2/10】start cut image, taskId = {}", taskId);
     List<ProcessImageRequest> request = ImageBeanTransUtils.getProcessImageRequests(taskId, articleDOList,taskConfig.getReplacePrefix(),
         FilePathConstant.local_prefix, FilePathConstant.LARGE_PATH, FilePathConstant.SMALL_PATH);
     String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
@@ -145,12 +145,12 @@ public class TaskImageProcessService {
     if (!resultStr.isPresent()) {
       return;
     }
-    log.info("【2/10】end cut image, taskId = {}", taskId);
+    log.info("processAsync【2/10】end cut image, taskId = {}", taskId);
 
     // 3.将大图小图写入数据库
-    log.info("【3/10】start insert image, taskId = {}", taskId);
+    log.info("processAsync【3/10】start insert image, taskId = {}", taskId);
     List<SmallImageDO> allSmallList = Lists.newArrayList();
-    List<LargeImageDO> allLargeList = Lists.newArrayList();
+    int largeCount = 0, smallCount = 0;
     List<ProcessImageResponse> responseList = JSONObject.parseArray(resultStr.get(), ProcessImageResponse.class);
     for (ProcessImageResponse processImageResponse : responseList) {
       Long articleId = processImageResponse.getArticleId();
@@ -174,26 +174,28 @@ public class TaskImageProcessService {
           smallImageDO.setCreator(String.valueOf(userId));
           smallImageDO.setIsSource(0);
           smallImageDOList.add(smallImageDO);
+          smallCount++;
         }
         Boolean flag = smallImageService.batchSave(smallImageDOList);
         if (!flag) {
-          log.error("aaa");
+          log.error("smallImageService.batchSave error, smallImageDOList = {}", JSONObject.toJSONString(smallImageDOList));
         }
-        allLargeList.add(largeImageDO);
+        largeCount++;
         allSmallList.addAll(smallImageDOList);
       }
     }
-    log.info("【3/10】end insert image, taskId = {}", taskId);
+    log.info("processAsync【3/10】end insert image, taskId = {}, large count = {}, small count = {}",
+        taskId, largeCount, smallCount);
 
     // 4.向量检索
-    log.info("【4/10】start milvus query, taskId = {}", taskId);
+    log.info("processAsync【4/10】start milvus query, taskId = {}", taskId);
     VectorQueryTypeEnum queryType = VectorQueryTypeEnum.COSINE;
     List<ImgSimilarityDO> recallList = vectorQueryService.query(allSmallList, taskId, queryType,taskType,imageTaskDO.getStrategyConfig());
     Set<Long> smallImageIdSet= recallList.stream().map(ImgSimilarityDO::getTargetSmallImageId).collect(Collectors.toSet());
-    log.info("【4/10】end milvus query, taskId = {}", taskId);
+    log.info("processAsync【4/10】end milvus query, taskId = {}, recall size = {}", taskId, recallList.size());
 
     // 5.补充相似图片的 文章id 和 大图id
-    log.info("【5/10】start complete image info, taskId = {}", taskId);
+    log.info("processAsync【5/10】start complete image info, taskId = {}", taskId);
     if(CollectionUtils.isNotEmpty(smallImageIdSet)) {
       List<SmallImageDO> smallImageDOList = smallImageService.queryByIds(smallImageIdSet);
       Map<Long,SmallImageDO> smallImageDOMap = smallImageDOList.stream().collect(Collectors.toMap(SmallImageDO::getId, x -> x));
@@ -207,10 +209,10 @@ public class TaskImageProcessService {
         imgSimilarityDO.setUpdater(String.valueOf(userId));
       }
     }
-    log.info("【5/10】end complete image info, taskId = {}", taskId);
+    log.info("processAsync【5/10】end complete image info, taskId = {}", taskId);
 
     // 6.写入报告
-    log.info("【6/10】start insert report, taskId = {}", taskId);
+    log.info("processAsync【6/10】start insert report, taskId = {}", taskId);
     ImgReportDO imgReportDO = new ImgReportDO();
     imgReportDO.setTaskId(taskId);
     imgReportDO.setReportType(2);
@@ -219,10 +221,10 @@ public class TaskImageProcessService {
     imgReportDO.setUpdater(String.valueOf(userId));
     imgReportDO.setCreatorId(userId);
     imgReportService.insert(imgReportDO);
-    log.info("【6/10】end insert report, taskId = {}", taskId);
+    log.info("processAsync【6/10】end insert report, taskId = {}", taskId);
 
     // 7.写入相似图片对
-    log.info("【7/10】start insert similar image, taskId = {}", taskId);
+    log.info("processAsync【7/10】start insert similar image, taskId = {}", taskId);
     if (CollectionUtils.isNotEmpty(recallList)){
       List<ImgSimilarityDO> batchList = Lists.newArrayList();
       for (int i = 0; i < recallList.size(); i++) {
@@ -239,25 +241,25 @@ public class TaskImageProcessService {
         imgSimilarityService.batchInsert(batchList);
       }
     }
-    log.info("【7/10】end insert similar image, taskId = {}", taskId);
+    log.info("processAsync【7/10】end insert similar image, taskId = {}, similar size = {}", taskId, recallList.size());
 
     // 8.查询特征点
-    log.info("【8/10】start query feature points, taskId = {}", taskId);
+    log.info("processAsync【8/10】start query feature points, taskId = {}", taskId);
     queryFeaturePointService.queryFeaturePoints(recallList);
-    log.info("【8/10】end query feature points, taskId = {}", taskId);
+    log.info("processAsync【8/10】end query feature points, taskId = {}", taskId);
 
     // 9.查询图片类型
-    log.info("【9/10】start query image type, taskId = {}", taskId);
+    log.info("processAsync【9/10】start query image type, taskId = {}", taskId);
     queryImageTypeService.queryImageType(allSmallList,taskId);
-    log.info("【9/10】end query image type, taskId = {}", taskId);
+    log.info("processAsync【9/10】end query image type, taskId = {}", taskId);
 
     // 10.更新任务状态为专家审核
-    log.info("【10/10】start update task status, taskId = {}", taskId);
+    log.info("processAsync【10/10】start update task status, taskId = {}", taskId);
     ImageTaskDO updateImageTaskStatus = new ImageTaskDO();
     updateImageTaskStatus.setId(taskId);
     updateImageTaskStatus.setTaskStatus(TaskStatusEnum.EXPERT_REVIEW.getCode());
     imageTaskService.update(updateImageTaskStatus);
-    log.info("【10/10】end update task status, taskId = {}", taskId);
+    log.info("processAsync【10/10】end update task status, taskId = {}", taskId);
 
     log.info("end process async, taskId = {}, fileType = {}", taskId, fileType);
   }
