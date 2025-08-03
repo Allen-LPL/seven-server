@@ -5,8 +5,10 @@ import lombok.Data;
 @Data
 public class DefaultImageTypeDTO {
 
+  private String code;
+
   private String name;
 
-  private String code;
+  private Boolean selected;
 
 }

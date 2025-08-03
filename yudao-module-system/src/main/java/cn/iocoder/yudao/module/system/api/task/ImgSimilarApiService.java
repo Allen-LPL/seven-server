@@ -2,7 +2,6 @@ package cn.iocoder.yudao.module.system.api.task;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
@@ -21,6 +20,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.TaskSearchPreferencesDO;
 import cn.iocoder.yudao.module.system.enums.task.FeaturePointsEnum;
 import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.ImageTypeEnum;
@@ -32,11 +32,17 @@ import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
+import cn.iocoder.yudao.module.system.service.task.TaskSearchPreferencesService;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -69,8 +75,16 @@ public class ImgSimilarApiService {
   @Resource
   private TaskConfig taskConfig;
 
+  @Resource
+  private TaskSearchPreferencesService taskSearchPreferencesService;
+
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
+
+    // 保存搜索偏好
+    if (Objects.nonNull(reqVO.getTaskId())) {
+        taskSearchPreferencesService.saveSearchPreferences(reqVO);
+    }
 
     // 当前用户角色
     AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
@@ -78,12 +92,12 @@ public class ImgSimilarApiService {
       throw new RuntimeException("用户未登录");
     }
     List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
-    if (CollectionUtils.isAnyEmpty(userRoles)){
+    if (CollectionUtils.isEmpty(userRoles)){
       throw new RuntimeException("用户未分配角色");
     }
     RoleDO roleDo = userRoles.get(0);
 
-    if (CollectionUtils.isAnyEmpty(reqVO.getModelNameList())){
+    if (CollectionUtils.isEmpty(reqVO.getModelNameList())){
       reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
     }
     if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
@@ -111,7 +125,7 @@ public class ImgSimilarApiService {
       SmallImageDO sourceSmall = smallImageService.queryById(imgSimilarQueryResVO.getSourceSmallImageId());
       if (Objects.nonNull(sourceSmall)) {
         imgSimilarQueryResVO.setSourceSmallImagePath(sourceSmall.getImagePath());
-        imgSimilarQueryResVO.setImageType(sourceSmall.getImageType());
+        imgSimilarQueryResVO.setImageType(Collections.singletonList(sourceSmall.getImageType()));
       }
       SmallImageDO targetSmall = smallImageService.queryById(imgSimilarQueryResVO.getTargetSmallImageId());
       if (Objects.nonNull(targetSmall)) {
@@ -283,37 +297,82 @@ public class ImgSimilarApiService {
     return CommonResult.success("删除审核意见成功");
   }
 
-  public CommonResult<ImgSimilarDefaultResVO> queryDefault() {
+  public CommonResult<ImgSimilarDefaultResVO> queryDefault(Long taskId) {
     ImgSimilarDefaultResVO resVO = new ImgSimilarDefaultResVO();
+
+    // 获取当前用户角色
+    AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
+    if (adminUserDO != null) {
+        List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
+        if (CollectionUtils.isNotEmpty(userRoles)) {
+            resVO.setRoles(userRoles.stream().map(RoleDO::getCode).collect(Collectors.toList()));
+        }
+    }
+
+    populateDefaults(resVO);
+
+    // 尝试获取已保存的偏好设置
+    if (Objects.nonNull(taskId)) {
+        TaskSearchPreferencesDO preferences = taskSearchPreferencesService.getSearchPreferences(taskId);
+        if (Objects.nonNull(preferences)) {
+            // 如果存在偏好，则使用偏好设置
+            if (StringUtils.isNotBlank(preferences.getModelName())) {
+                resVO.getDefaultModelList().forEach(dto -> dto.setSelected(dto.getName().equals(preferences.getModelName())));
+                resVO.getDefaultModelList().sort(Comparator.comparing(dto -> !dto.getName().equals(preferences.getModelName())));
+                if (Objects.nonNull(preferences.getSimilarScoreThreshold())) {
+                    resVO.getDefaultModelList().stream()
+                        .filter(dto -> dto.getName().equals(preferences.getModelName()))
+                        .findFirst()
+                        .ifPresent(dto -> dto.setScore(preferences.getSimilarScoreThreshold()));
+                }
+            }
+            if (StringUtils.isNotBlank(preferences.getImageTypes())) {
+                List<String> preferredTypes = JSON.parseArray(preferences.getImageTypes(), String.class);
+                resVO.getDefaultImageTypeList().forEach(dto -> dto.setSelected(preferredTypes.contains(dto.getCode())));
+                resVO.getDefaultImageTypeList().sort(Comparator.comparing(dto -> !preferredTypes.contains(dto.getCode())));
+            }
+            if (Objects.nonNull(preferences.getFeaturePoints())) {
+                resVO.getDefaultFeaturePointsList().forEach(dto -> dto.setSelected(dto.getValue().equals(preferences.getFeaturePoints())));
+                resVO.getDefaultFeaturePointsList().sort(Comparator.comparing(dto -> !dto.getValue().equals(preferences.getFeaturePoints())));
+            }
+        }
+    }
+
+    return CommonResult.success(resVO);
+  }
+
+  private void populateDefaults(ImgSimilarDefaultResVO resVO) {
     // 算法
     List<DefaultModelDTO> defaultModelDTOList = Lists.newArrayList();
     for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
-      DefaultModelDTO defaultModelDTO = new DefaultModelDTO();
-      defaultModelDTO.setName(modelNameEnum.getCode());
-      defaultModelDTO.setScore(modelNameEnum.getScore()*100);
-      defaultModelDTOList.add(defaultModelDTO);
+        DefaultModelDTO defaultModelDTO = new DefaultModelDTO();
+        defaultModelDTO.setName(modelNameEnum.getCode());
+        defaultModelDTO.setScore(modelNameEnum.getScore()*100);
+        defaultModelDTO.setSelected(false);
+        defaultModelDTOList.add(defaultModelDTO);
     }
     resVO.setDefaultModelList(defaultModelDTOList);
 
     // 图像分类
     List<DefaultImageTypeDTO> imageTypeDTOS = Lists.newArrayList();
     for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
-      DefaultImageTypeDTO defaultImageTypeDTO = new DefaultImageTypeDTO();
-      defaultImageTypeDTO.setCode(imageTypeEnum.getCode());
-      defaultImageTypeDTO.setName(imageTypeEnum.getDesc());
-      imageTypeDTOS.add(defaultImageTypeDTO);
+        DefaultImageTypeDTO defaultImageTypeDTO = new DefaultImageTypeDTO();
+        defaultImageTypeDTO.setCode(imageTypeEnum.getCode());
+        defaultImageTypeDTO.setName(imageTypeEnum.getDesc());
+        defaultImageTypeDTO.setSelected(false);
+        imageTypeDTOS.add(defaultImageTypeDTO);
     }
     resVO.setDefaultImageTypeList(imageTypeDTOS);
 
     // 特征点
     List<DefaultFeaturePointsDTO> featurePointsDTOS = Lists.newArrayList();
     for (FeaturePointsEnum featurePointsEnum: FeaturePointsEnum.values()){
-      DefaultFeaturePointsDTO defaultFeaturePointsDTO = new DefaultFeaturePointsDTO();
-      defaultFeaturePointsDTO.setName(featurePointsEnum.getCode());
-      defaultFeaturePointsDTO.setValue(featurePointsEnum.getThreshold());
-      featurePointsDTOS.add(defaultFeaturePointsDTO);
+        DefaultFeaturePointsDTO defaultFeaturePointsDTO = new DefaultFeaturePointsDTO();
+        defaultFeaturePointsDTO.setName(featurePointsEnum.getCode());
+        defaultFeaturePointsDTO.setValue(featurePointsEnum.getThreshold());
+        defaultFeaturePointsDTO.setSelected(false);
+        featurePointsDTOS.add(defaultFeaturePointsDTO);
     }
     resVO.setDefaultFeaturePointsList(featurePointsDTOS);
-    return CommonResult.success(resVO);
   }
 }

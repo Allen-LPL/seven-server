@@ -102,9 +102,9 @@ public class SimilarController {
   }
 
   @GetMapping("/queryDefault")
-  public CommonResult<ImgSimilarDefaultResVO> queryDefault() {
+  public CommonResult<ImgSimilarDefaultResVO> queryDefault(@RequestParam(required = false) Long taskId) {
     try {
-      return imgSimilarApiService.queryDefault();
+      return imgSimilarApiService.queryDefault(taskId);
     }catch (Exception e) {
       log.error("查询失败，",e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));

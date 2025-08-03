@@ -4,8 +4,11 @@ import lombok.Data;
 
 @Data
 public class DefaultFeaturePointsDTO {
+
   private String name;
 
   private Integer value;
+
+  private Boolean selected;
 
 }
