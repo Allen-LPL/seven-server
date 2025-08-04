@@ -196,18 +196,18 @@ public class ImgSimilarApiService {
     updateImageTask.setReviewTime(LocalDateTime.now());
     updateImageTask.setUpdater(String.valueOf(WebFrameworkUtils.getLoginUserId()));
     // 阈值
-    if (CollectionUtils.isNotEmpty(reqVO.getModelNameList())){
-      updateImageTask.setModelList(JSONObject.toJSONString(reqVO.getModelNameList()));
-    }
-    if (CollectionUtils.isNotEmpty(reqVO.getImageTypeList())){
-      updateImageTask.setImageTypeList(JSONObject.toJSONString(reqVO.getImageTypeList()));
-    }
-    if (Objects.nonNull(reqVO.getFeaturePoints())){
-      updateImageTask.setFeaturePoints(reqVO.getFeaturePoints());
-    }
-    if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
-      updateImageTask.setSimilarThreshold(reqVO.getSimilarScoreThreshold());
-    }
+//    if (CollectionUtils.isNotEmpty(reqVO.getModelNameList())){
+//      updateImageTask.setModelList(JSONObject.toJSONString(reqVO.getModelNameList()));
+//    }
+//    if (CollectionUtils.isNotEmpty(reqVO.getImageTypeList())){
+//      updateImageTask.setImageTypeList(JSONObject.toJSONString(reqVO.getImageTypeList()));
+//    }
+//    if (Objects.nonNull(reqVO.getFeaturePoints())){
+//      updateImageTask.setFeaturePoints(reqVO.getFeaturePoints());
+//    }
+//    if (Objects.nonNull(reqVO.getSimilarScoreThreshold())){
+//      updateImageTask.setSimilarThreshold(reqVO.getSimilarScoreThreshold());
+//    }
 
     imageTaskService.update(updateImageTask);
     return CommonResult.success("success");

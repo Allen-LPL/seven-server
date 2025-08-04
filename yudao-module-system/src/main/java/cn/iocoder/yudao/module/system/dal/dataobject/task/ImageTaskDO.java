@@ -89,12 +89,4 @@ public class ImageTaskDO extends BaseDO {
 
   private String taskNo;
 
-  private String modelList;
-
-  private String imageTypeList;
-
-  private Integer featurePoints = 5;
-
-  private Double similarThreshold;
-
 }

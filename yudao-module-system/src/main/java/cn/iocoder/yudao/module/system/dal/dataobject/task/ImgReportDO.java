@@ -38,4 +38,12 @@ public class ImgReportDO extends BaseDO {
 
   private LocalDateTime reviewTime;
 
+  private String modelList;
+
+  private String imageTypeList;
+
+  private Integer featurePoints = 5;
+
+  private Double similarThreshold;
+
 }
