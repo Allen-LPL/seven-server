@@ -4,20 +4,18 @@ import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultFeaturePo
 import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultImageTypeDTO;
 import cn.iocoder.yudao.module.system.controller.admin.task.dto.DefaultModelDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
 
-
+@Schema(description = "管理后台 - 相似图片默认值 Response VO")
 @Data
 public class ImgSimilarDefaultResVO {
-
-  @Schema(description = "算法列表&及对应的默认相似分")
+  @Schema(description = "默认算法列表")
   private List<DefaultModelDTO> defaultModelList;
-
-  @Schema(description = "图像分类列表")
+  @Schema(description = "默认图片分类列表")
   private List<DefaultImageTypeDTO> defaultImageTypeList;
-
-  @Schema(description = "特征点数量列表")
+  @Schema(description = "默认特征点列表")
   private List<DefaultFeaturePointsDTO> defaultFeaturePointsList;
+  @Schema(description = "用户角色列表")
+  private List<String> roles;
 }

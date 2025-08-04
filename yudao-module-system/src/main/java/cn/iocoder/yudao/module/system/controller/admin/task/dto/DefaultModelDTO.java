@@ -9,4 +9,6 @@ public class DefaultModelDTO {
 
   private Double score;
 
+  private Boolean selected;
+
 }

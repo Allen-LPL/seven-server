@@ -79,5 +79,5 @@ public class ImgSimilarQueryResVO {
   private Integer featurePointCnt;
 
   @Schema(description = "图片类型")
-  private String imageType;
+  private List<String> imageType;
 }
