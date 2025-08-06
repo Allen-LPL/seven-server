@@ -211,18 +211,6 @@ public class TaskImageProcessService {
     }
     log.info("processAsync【5/10】end complete image info, taskId = {}", taskId);
 
-    // 6.写入报告
-    log.info("processAsync【6/10】start insert report, taskId = {}", taskId);
-    ImgReportDO imgReportDO = new ImgReportDO();
-    imgReportDO.setTaskId(taskId);
-    imgReportDO.setReportType(2);
-    imgReportDO.setReportName(getReportName());
-    imgReportDO.setCreator(String.valueOf(userId));
-    imgReportDO.setUpdater(String.valueOf(userId));
-    imgReportDO.setCreatorId(userId);
-    imgReportService.insert(imgReportDO);
-    log.info("processAsync【6/10】end insert report, taskId = {}", taskId);
-
     // 7.写入相似图片对
     log.info("processAsync【7/10】start insert similar image, taskId = {}", taskId);
     if (CollectionUtils.isNotEmpty(recallList)){

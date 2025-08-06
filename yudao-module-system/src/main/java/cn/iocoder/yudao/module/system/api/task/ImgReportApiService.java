@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ImgReportQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ImgReportQueryResVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ReportPageReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgReportDO;
 import cn.iocoder.yudao.module.system.service.task.ImgReportService;
 import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
@@ -22,11 +23,11 @@ public class ImgReportApiService {
   @Resource
   private ImgReportService imgReportService;
 
-  public CommonResult<PageResult<ImgReportQueryResVO>> pageQuery(ImgReportQueryReqVO reqVO){
-    PageResult<ImgReportDO> imageDOPageResult =  imgReportService.pageResult(reqVO);
-    PageResult<ImgReportQueryResVO> pageResult = BeanUtils.toBean(imageDOPageResult,ImgReportQueryResVO.class);
-    return CommonResult.success(pageResult);
-  }
+//  public CommonResult<PageResult<ImgReportDO>> pageQuery(ReportPageReqVO reqVO){
+//    PageResult<ImgReportDO> imageDOPageResult =  imgReportService.pageResult(reqVO);
+////    PageResult<ImgReportQueryResVO> pageResult = BeanUtils.toBean(imageDOPageResult,ImgReportQueryResVO.class);
+//    return CommonResult.success(imageDOPageResult);
+//  }
 
   public CommonResult<Integer> deleteByIds(List<Long> ids){
     if (CollectionUtils.isAnyEmpty(ids)){

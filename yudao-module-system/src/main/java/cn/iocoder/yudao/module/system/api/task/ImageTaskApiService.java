@@ -77,6 +77,82 @@ public class ImageTaskApiService {
   @Resource
   private AdminUserInfoServiceImpl userInfoService;
 
+  public CommonResult<ImageTaskQueryResDTO> get(ImageTaskQueryReqVO imageTaskQueryReqVO) {
+
+    // 当前用户角色
+    AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
+    if (Objects.isNull(adminUserDO)) {
+      throw new RuntimeException("用户未登录");
+    }
+    List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
+    if (CollectionUtils.isAnyEmpty(userRoles)) {
+      throw new RuntimeException("用户未分配角色");
+    }
+    RoleDO roleDo = userRoles.get(0);
+
+    // 如果是专家 只能看到分配给他的
+    if (roleDo.getCode().equals("Expert_admin")) {
+      imageTaskQueryReqVO.setReviewId(WebFrameworkUtils.getLoginUserId());
+    } else if (roleDo.getCode().equals("Common")) {
+      imageTaskQueryReqVO.setCreatorId(WebFrameworkUtils.getLoginUserId());
+    }
+
+    ImageTaskDO imageTaskDO = imageTaskService.getById(imageTaskQueryReqVO.getTaskId());
+    ImageTaskQueryResDTO queryResDTO = BeanUtils.toBean(imageTaskDO, ImageTaskQueryResDTO.class);
+    queryResDTO.setRole(roleDo.getCode());
+
+    // 补充创建用户信息
+    //      if (roleDo.getCode().equalsIgnoreCase("super_admin") || roleDo.getCode().equalsIgnoreCase("Research_admin")){
+    AdminUserDO createUser = adminUserService.getUser(queryResDTO.getCreatorId());
+    if (Objects.nonNull(createUser)) {
+      queryResDTO.setUserName(createUser.getNickname());
+      DeptDO deptDO = deptService.getDept(createUser.getDeptId());
+      if (Objects.nonNull(deptDO)) {
+        queryResDTO.setUserUnit(deptDO.getName());
+      }
+    }
+    //      }
+
+
+    // 补充审核用户信息
+    if (queryResDTO.getReviewerId() != null) {
+      AdminUserVO reviewUser = userInfoService.getUserById(queryResDTO.getReviewerId());
+      if (Objects.nonNull(reviewUser)) {
+        queryResDTO.setReviewUserName(reviewUser.getUsername());
+        DeptDO reviewDeptDO = deptService.getDept(reviewUser.getDeptId());
+        if (Objects.nonNull(reviewDeptDO)) {
+          queryResDTO.setReviewUserUnit(reviewDeptDO.getName());
+        }
+      }
+    }
+
+    // 补充论文标题、杂志社和作者
+    Map<Long, String> articleTitleMap = Maps.newHashMap();
+    Map<Long, String> articleJournalMap = Maps.newHashMap();
+    Map<Long, List<String>> authorNameMap = Maps.newHashMap();
+    List<String> fileUrlList = Lists.newArrayList();
+    List<String> imageList = Lists.newArrayList();
+
+    List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
+    for (ArticleDO articleDO : articleDOList) {
+      if (queryResDTO.getFileType().equals("pdf")) {
+        articleTitleMap.put(articleDO.getId(), articleDO.getArticleTitle());
+        articleJournalMap.put(articleDO.getId(), articleDO.getArticleJournal());
+        authorNameMap.put(articleDO.getId(), articleDO.getAuthorName());
+        fileUrlList.add(articleDO.getFilePath());
+      } else {
+        imageList.add(articleDO.getFilePath());
+      }
+    }
+
+    queryResDTO.setFileUrlList(fileUrlList);
+    queryResDTO.setFirstImage(imageList);
+    queryResDTO.setArticleTitleMap(articleTitleMap);
+    queryResDTO.setArticleJournalMap(articleJournalMap);
+    queryResDTO.setAuthorNameMap(authorNameMap);
+
+    return CommonResult.success(queryResDTO);
+  }
 
   public PageResult<ImageTaskQueryResDTO> query(ImageTaskQueryReqVO imageTaskQueryReqVO){
 

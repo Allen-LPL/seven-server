@@ -64,10 +64,22 @@ public class TaskController {
     }
   }
 
+  @GetMapping("/get")
+  public CommonResult<ImageTaskQueryResDTO> get(@RequestParam("id") Long id) {
+    try {
+      ImageTaskQueryReqVO imageTaskQueryReqVO = new ImageTaskQueryReqVO();
+      imageTaskQueryReqVO.setTaskId(id);
+      return imageTaskApiService.get(imageTaskQueryReqVO);
+    }catch (Exception e) {
+      log.error("查询失败，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
   @GetMapping("/query")
   public CommonResult<PageResult<ImageTaskQueryResDTO>> create(ImageTaskQueryReqVO reqVO) {
     try {
-      PageResult<ImageTaskQueryResDTO> pageResult =  imageTaskApiService.query(reqVO);
+      PageResult<ImageTaskQueryResDTO> pageResult = imageTaskApiService.query(reqVO);
       return CommonResult.success(pageResult);
     }catch (Exception e) {
       log.error("查询失败，",e);
