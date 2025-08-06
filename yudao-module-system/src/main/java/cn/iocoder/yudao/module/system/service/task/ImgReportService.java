@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ImgReportQueryReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ReportPageReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgReportDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImgReportMapper;
 import java.util.List;
@@ -14,9 +15,9 @@ public class ImgReportService {
   @Resource
   private ImgReportMapper imgReportMapper;
 
-  public PageResult<ImgReportDO> pageResult(ImgReportQueryReqVO reqVO){
-    return imgReportMapper.selectPage(reqVO);
-  }
+//  public PageResult<ImgReportDO> pageResult(ReportPageReqVO reqVO){
+//    return imgReportMapper.selectPage(reqVO);
+//  }
 
   public Integer deleteById(Long id){
     return imgReportMapper.deleteById(id);
