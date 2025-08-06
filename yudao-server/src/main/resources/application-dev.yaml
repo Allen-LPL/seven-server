@@ -256,4 +256,4 @@ image:
   classify:
     url: http://172.20.76.10:8086/onlineclassify
   feature:
-    url: http://172.20.76.10:8086/comparecount
+    url: http://172.20.76.10:8087/comparecount
