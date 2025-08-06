@@ -178,9 +178,11 @@ public class TaskImageProcessService {
           smallImageDOList.add(smallImageDO);
           smallCount++;
         }
-        Boolean flag = smallImageService.batchSave(smallImageDOList);
-        if (!flag) {
-          log.error("smallImageService.batchSave error, smallImageDOList = {}", JSONObject.toJSONString(smallImageDOList));
+        if (CollectionUtils.isNotEmpty(smallImageDOList)) {
+          Boolean flag = smallImageService.batchSave(smallImageDOList);
+          if (!flag) {
+            log.error("smallImageService.batchSave error, smallImageDOList = {}", JSONObject.toJSONString(smallImageDOList));
+          }
         }
         largeCount++;
         allSmallList.addAll(smallImageDOList);
@@ -240,7 +242,7 @@ public class TaskImageProcessService {
 
     // 9.查询图片类型
     log.info("processAsync【9/10】start query image type, taskId = {}", taskId);
-    queryImageTypeService.queryImageType(allSmallList,taskId);
+    //queryImageTypeService.queryImageType(allSmallList,taskId);
     log.info("processAsync【9/10】end query image type, taskId = {}", taskId);
 
     // 10.更新任务状态为专家审核
