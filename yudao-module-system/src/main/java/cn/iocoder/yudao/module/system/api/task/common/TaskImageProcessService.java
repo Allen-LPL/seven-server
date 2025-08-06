@@ -132,7 +132,9 @@ public class TaskImageProcessService {
         log.info("end parse pdf, pdfParseResultDTO = {}", JSONObject.toJSONString(pdfParseResultDTO));
         pdfParseService.transArticleToPdf(articleDO, pdfParseResultDTO);
       }
-      articleService.updateBatch(articleDOList);
+      log.info("articleDOList : {}",JSONObject.toJSONString(articleDOList));
+      Boolean flag = articleService.updateBatch(articleDOList);
+      log.info("end parse pdf, flag = {}", flag);
     }
     log.info("processAsync【1/10】end parse pdf, taskId = {}, article size = {}", taskId, articleDOList.size());
 
