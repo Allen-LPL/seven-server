@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.image.SmallImageQ
 import cn.iocoder.yudao.module.system.dal.dataobject.task.LargeImageDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.SmallImageDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.SmallImageMapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import java.util.List;

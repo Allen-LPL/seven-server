@@ -4,7 +4,10 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImgSimilarityMapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.github.yulichang.wrapper.DeleteJoinWrapper;
 import java.util.List;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -57,6 +60,13 @@ public class ImgSimilarityService {
     updateWrapper.eq("source_small_image_id", image.getSourceSmallImageId());
     updateWrapper.set("image_type",image.getImageType());
     return imgSimilarityMapper.update(updateWrapper);
+  }
+
+  public Integer deleteZeroPoints(Long taskId, Integer featurePointCnt){
+    QueryWrapper<ImgSimilarityDO> sqlWrapper = new QueryWrapper<>();
+    sqlWrapper.eq("task_id", taskId);
+    sqlWrapper.eq("feature_point_cnt", featurePointCnt);
+    return imgSimilarityMapper.delete(sqlWrapper);
   }
 
 }

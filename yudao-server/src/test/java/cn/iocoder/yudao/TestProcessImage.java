@@ -104,7 +104,7 @@ public class TestProcessImage {
     TenantContextHolder.setTenantId(1L);
     Long taskId = 97L;
     List<ImgSimilarityDO> imgSimilarityDOS =  imgSimilarityService.queryByTaskId(taskId);
-    queryFeaturePointService.queryFeaturePoints(imgSimilarityDOS);
+    queryFeaturePointService.queryFeaturePoints(imgSimilarityDOS,taskId);
   }
 
   @Test

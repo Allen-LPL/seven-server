@@ -33,7 +33,7 @@ public class QueryFeaturePointService {
   @Resource
   private TaskConfig taskConfig;
 
-  public void queryFeaturePoints(List<ImgSimilarityDO> recallList) {
+  public void queryFeaturePoints(List<ImgSimilarityDO> recallList, Long taskId) {
     if (CollectionUtils.isEmpty(recallList)) {
       return;
     }
@@ -66,6 +66,10 @@ public class QueryFeaturePointService {
     if (CollectionUtils.isNotEmpty(batchList)){
       callFeaturePoint(batchList);
     }
+
+    // 删除特征点位0的图片对
+    Integer count = imgSimilarityService.deleteZeroPoints(taskId,0);
+    log.info("delete zero points img similarity count : {}", count);
   }
 
   private void callFeaturePoint(List<FeaturePointQueryDTO> batchList){
