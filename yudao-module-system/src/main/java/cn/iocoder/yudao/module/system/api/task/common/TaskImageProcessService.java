@@ -237,7 +237,7 @@ public class TaskImageProcessService {
 
     // 8.查询特征点
     log.info("processAsync【8/10】start query feature points, taskId = {}", taskId);
-    queryFeaturePointService.queryFeaturePoints(recallList);
+    queryFeaturePointService.queryFeaturePoints(recallList,taskId);
     log.info("processAsync【8/10】end query feature points, taskId = {}", taskId);
 
     // 9.查询图片类型
