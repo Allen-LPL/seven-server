@@ -35,6 +35,7 @@ import cn.iocoder.yudao.module.system.service.task.VectorQueryService;
 import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,6 +46,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -102,6 +104,7 @@ public class TaskImageProcessService {
   }
 
   public void process(Long taskId) {
+    Stopwatch stopwatch = Stopwatch.createStarted();
     log.info("start process async, taskId = {}", taskId);
 
     // 获取当前用户
@@ -136,7 +139,8 @@ public class TaskImageProcessService {
       Boolean flag = articleService.updateBatch(articleDOList);
       log.info("end parse pdf, flag = {}", flag);
     }
-    log.info("processAsync【1/10】end parse pdf, taskId = {}, article size = {}", taskId, articleDOList.size());
+    log.info("processAsync【1/10】end parse pdf, taskId = {}, article size = {}, take {}ms", taskId, articleDOList.size(),
+        stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 2.调py接口：切割大图小图 & 小图向量化
     log.info("processAsync【2/10】start cut image, taskId = {}", taskId);
@@ -147,7 +151,7 @@ public class TaskImageProcessService {
     if (!resultStr.isPresent()) {
       return;
     }
-    log.info("processAsync【2/10】end cut image, taskId = {}", taskId);
+    log.info("processAsync【2/10】end cut image, taskId = {}, take {}ms", taskId,stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 3.将大图小图写入数据库
     log.info("processAsync【3/10】start insert image, taskId = {}", taskId);
@@ -188,15 +192,16 @@ public class TaskImageProcessService {
         allSmallList.addAll(smallImageDOList);
       }
     }
-    log.info("processAsync【3/10】end insert image, taskId = {}, large count = {}, small count = {}",
-        taskId, largeCount, smallCount);
+    log.info("processAsync【3/10】end insert image, taskId = {}, large count = {}, small count = {}, take {}ms",
+        taskId, largeCount, smallCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 4.向量检索
     log.info("processAsync【4/10】start milvus query, taskId = {}", taskId);
     VectorQueryTypeEnum queryType = VectorQueryTypeEnum.COSINE;
     List<ImgSimilarityDO> recallList = vectorQueryService.query(allSmallList, taskId, queryType,taskType,imageTaskDO.getStrategyConfig());
     Set<Long> smallImageIdSet= recallList.stream().map(ImgSimilarityDO::getTargetSmallImageId).collect(Collectors.toSet());
-    log.info("processAsync【4/10】end milvus query, taskId = {}, recall size = {}", taskId, recallList.size());
+    log.info("processAsync【4/10】end milvus query, taskId = {}, recall size = {}, take {}ms",
+        taskId, recallList.size(),stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 5.补充相似图片的 文章id 和 大图id
     log.info("processAsync【5/10】start complete image info, taskId = {}", taskId);
@@ -213,7 +218,7 @@ public class TaskImageProcessService {
         imgSimilarityDO.setUpdater(String.valueOf(userId));
       }
     }
-    log.info("processAsync【5/10】end complete image info, taskId = {}", taskId);
+    log.info("processAsync【5/10】end complete image info, taskId = {}, take {}ms", taskId, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 7.写入相似图片对
     log.info("processAsync【7/10】start insert similar image, taskId = {}", taskId);
@@ -233,17 +238,18 @@ public class TaskImageProcessService {
         imgSimilarityService.batchInsert(batchList);
       }
     }
-    log.info("processAsync【7/10】end insert similar image, taskId = {}, similar size = {}", taskId, recallList.size());
+    log.info("processAsync【7/10】end insert similar image, taskId = {}, similar size = {}, take {}ms",
+        taskId, recallList.size(),stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 8.查询特征点
     log.info("processAsync【8/10】start query feature points, taskId = {}", taskId);
     queryFeaturePointService.queryFeaturePoints(recallList,taskId);
-    log.info("processAsync【8/10】end query feature points, taskId = {}", taskId);
+    log.info("processAsync【8/10】end query feature points, taskId = {}, take {}ms", taskId, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 9.查询图片类型
     log.info("processAsync【9/10】start query image type, taskId = {}", taskId);
     //queryImageTypeService.queryImageType(allSmallList,taskId);
-    log.info("processAsync【9/10】end query image type, taskId = {}", taskId);
+    log.info("processAsync【9/10】end query image type, taskId = {}, take {}ms", taskId, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     // 10.更新任务状态为专家审核
     log.info("processAsync【10/10】start update task status, taskId = {}", taskId);
@@ -251,9 +257,10 @@ public class TaskImageProcessService {
     updateImageTaskStatus.setId(taskId);
     updateImageTaskStatus.setTaskStatus(TaskStatusEnum.EXPERT_REVIEW.getCode());
     imageTaskService.update(updateImageTaskStatus);
-    log.info("processAsync【10/10】end update task status, taskId = {}", taskId);
+    log.info("processAsync【10/10】end update task status, taskId = {}, take {}ms", taskId,stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-    log.info("end process async, taskId = {}, fileType = {}", taskId, fileType);
+    log.info("end process async, taskId = {}, fileType = {}, take {} ms", taskId, fileType, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    stopwatch.stop();
   }
 
 
