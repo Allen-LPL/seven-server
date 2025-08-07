@@ -42,23 +42,43 @@ public class LocalFileClient extends AbstractFileClient<LocalFileClientConfig> {
     }
 
     private String getFilePath(String path) {
-        // 从path中提取taskId，假设path格式为: taskId/filename 或者 /taskId/filename
-        String taskId = extractTaskIdFromPath(path);
-        
-        // 构建项目根目录下的task-file/{taskId}路径
+        // 兼容 report/ 路径和 task-file/ 路径
+        // 支持格式: report/taskId/filename 或 taskId/filename 或 /report/taskId/filename 或 /taskId/filename
         String projectRoot = System.getProperty("user.dir");
-        String taskFileDir = projectRoot + File.separator + "task-file" + File.separator + taskId;
-        
+        String baseDir;
+        String taskId;
+        String fileName;
+
+        String normalizedPath = path;
+        if (normalizedPath == null) {
+            normalizedPath = "";
+        }
+        // 移除开头的斜杠
+        if (normalizedPath.startsWith("/")) {
+            normalizedPath = normalizedPath.substring(1);
+        }
+
+        if (normalizedPath.startsWith("report/")) {
+            // report 路径
+            String remain = normalizedPath.substring("report/".length());
+            // remain 现在应该是 taskId/filename
+            taskId = extractTaskIdFromPath(remain);
+            fileName = getFileNameFromPath(remain);
+            baseDir = projectRoot + File.separator + "report" + File.separator + taskId;
+        } else {
+            // 默认 task-file 路径
+            taskId = extractTaskIdFromPath(normalizedPath);
+            fileName = getFileNameFromPath(normalizedPath);
+            baseDir = projectRoot + File.separator + "task-file" + File.separator + taskId;
+        }
+
         // 确保目录存在
-        File dir = new File(taskFileDir);
+        File dir = new File(baseDir);
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        
-        // 获取文件名部分（去掉taskId前缀）
-        String fileName = getFileNameFromPath(path);
-        
-        return taskFileDir + File.separator + fileName;
+
+        return baseDir + File.separator + fileName;
     }
     
     /**

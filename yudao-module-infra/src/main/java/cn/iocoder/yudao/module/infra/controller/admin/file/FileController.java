@@ -85,10 +85,15 @@ public class FileController {
                                HttpServletResponse response,
                                @PathVariable("configId") Long configId) throws Exception {
         // 获取请求的路径
+        // 兼容 /get/task-file/ 和 /get/report/ 两种路径
         String path = StrUtil.subAfter(request.getRequestURI(), "/get/task-file/", false);
         if (StrUtil.isEmpty(path)) {
-            throw new IllegalArgumentException("结尾的 path 路径必须传递");
+            path = StrUtil.subAfter(request.getRequestURI(), "/get/report/", false);
+            path = "report/"+path;
         }
+//        if (StrUtil.isEmpty(path)) {
+//            throw new IllegalArgumentException("结尾的 path 路径必须传递");
+//        }
         // 解码，解决中文路径的问题 https://gitee.com/zhijiantianya/ruoyi-vue-pro/pulls/807/
         path = URLUtil.decode(path);
 
