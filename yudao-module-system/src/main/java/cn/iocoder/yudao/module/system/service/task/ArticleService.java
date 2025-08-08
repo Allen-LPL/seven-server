@@ -7,6 +7,9 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -87,4 +90,13 @@ public class ArticleService {
     return articleMapper.selectList(queryWrapper);
   }
 
+  public Map<Long, String> getArticleNameMap(List<Long> sourceArticleIdList){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.in("id", sourceArticleIdList);
+    queryWrapper.eq("deleted",0);
+    queryWrapper.eq("status",1);
+    queryWrapper.select("id", "article_title");
+    List<ArticleDO> articleDOList = articleMapper.selectList(queryWrapper);
+    return articleDOList.stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getArticleTitle));
+  }
 }
