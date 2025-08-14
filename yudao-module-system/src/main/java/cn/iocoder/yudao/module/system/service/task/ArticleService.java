@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.file.FileQueryReq
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ArticleMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -91,6 +92,9 @@ public class ArticleService {
   }
 
   public Map<Long, String> getArticleNameMap(List<Long> sourceArticleIdList){
+    if (CollectionUtils.isAnyEmpty(sourceArticleIdList)) {
+      return Maps.newHashMap();
+    }
     QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
     queryWrapper.in("id", sourceArticleIdList);
     queryWrapper.eq("deleted",0);
