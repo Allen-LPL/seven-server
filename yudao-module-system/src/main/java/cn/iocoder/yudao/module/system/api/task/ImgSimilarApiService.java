@@ -28,6 +28,7 @@ import cn.iocoder.yudao.module.system.enums.task.ModelNameEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
+import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.task.ImgSimilarityService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
@@ -41,6 +42,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
@@ -79,6 +81,9 @@ public class ImgSimilarApiService {
   @Resource
   private TaskSearchPreferencesService taskSearchPreferencesService;
 
+  @Resource
+  private ArticleService articleService;
+
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
 
@@ -116,8 +121,15 @@ public class ImgSimilarApiService {
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();
-    for (ImgSimilarQueryResVO imgSimilarQueryResVO : queryResDTOList) {
 
+    // 获取queryResDTOList中所有sourceArticleId，去重，批量查询文章名组成id->name的map
+    List<Long> sourceArticleIdList = queryResDTOList.stream().map(ImgSimilarQueryResVO::getSourceArticleId).distinct().collect(Collectors.toList());
+    Map<Long, String> sourceArticleIdToNameMap = articleService.getArticleNameMap(sourceArticleIdList);
+
+    for (ImgSimilarQueryResVO imgSimilarQueryResVO : queryResDTOList) {
+      if (Objects.nonNull(imgSimilarQueryResVO.getSourceArticleId())){
+        imgSimilarQueryResVO.setSourceArticleName(sourceArticleIdToNameMap.get(imgSimilarQueryResVO.getSourceArticleId()));
+      }
 
       // 补充创建用户信息
       AdminUserDO creatorUser = adminUserService.getUser(Long.parseLong(imgSimilarQueryResVO.getCreator()));
