@@ -171,7 +171,7 @@ public class DbImageProcessService {
     // 3.调py接口：切割大图小图 & 小图向量化
     List<ProcessImageRequest> request = getProcessImageRequests(articleDO);
     String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
-    log.info(response);
+    log.info("cut image request : {}, response : {}", JSONObject.toJSONString(request), response);
     Optional<String> resultStr = getImageCutResultStr(response,articleDO.getId());
     if (!resultStr.isPresent() || StringUtils.isBlank(resultStr.get())){
       return Lists.newArrayList();
