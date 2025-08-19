@@ -145,7 +145,7 @@ public class TaskImageProcessService {
     // 2.调py接口：切割大图小图 & 小图向量化
     log.info("processAsync【2/10】start cut image, taskId = {}", taskId);
     List<ProcessImageRequest> request = ImageBeanTransUtils.getProcessImageRequests(taskId, articleDOList,taskConfig.getReplacePrefix(),
-        FilePathConstant.local_prefix, FilePathConstant.LARGE_PATH, FilePathConstant.SMALL_PATH);
+        FilePathConstant.local_prefix, FilePathConstant.LARGE_PATH, FilePathConstant.SMALL_PATH, FilePathConstant.PREVIEW_PATH);
     String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
     Optional<String> resultStr = ImageBeanTransUtils.getImageCutResultStr(taskId, request, response);
     if (!resultStr.isPresent()) {

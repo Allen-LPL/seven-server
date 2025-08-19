@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.system.api.task.common;
 
-import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
@@ -38,6 +37,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -76,7 +76,9 @@ public class DbImageProcessService {
   public void processFileBatch(List<String> filePathList, String fileType){
     for (String filePath : filePathList) {
       List<SmallImageMilvusDTO> smallImageMilvusDTOList = processFileSingle(filePath, fileType);
-      milvusOperateService.writeDataAllCollection(smallImageMilvusDTOList);
+      if (CollectionUtils.isNotEmpty(smallImageMilvusDTOList)){
+        milvusOperateService.writeDataAllCollection(smallImageMilvusDTOList);
+      }
     }
   }
 
@@ -97,7 +99,7 @@ public class DbImageProcessService {
       }
     }
 
-    if (CollectionUtils.isAnyEmpty(fileList)){
+    if (CollectionUtils.isEmpty(fileList)){
       log.warn("file Invalid , path {}",filePath);
       return;
     }
@@ -121,7 +123,7 @@ public class DbImageProcessService {
       }
     }
 
-    if (CollectionUtils.isAnyEmpty(fileList)){
+    if (CollectionUtils.isEmpty(fileList)){
       log.warn("file Invalid ");
       return;
     }
@@ -171,7 +173,7 @@ public class DbImageProcessService {
     // 3.调py接口：切割大图小图 & 小图向量化
     List<ProcessImageRequest> request = getProcessImageRequests(articleDO);
     String response = HttpUtils.post(taskConfig.getProcessImageUrl(),null, JSONObject.toJSONString(request));
-    log.info(response);
+    log.info("cut image request : {}, response : {}", JSONObject.toJSONString(request), response);
     Optional<String> resultStr = getImageCutResultStr(response,articleDO.getId());
     if (!resultStr.isPresent() || StringUtils.isBlank(resultStr.get())){
       return Lists.newArrayList();
@@ -194,6 +196,9 @@ public class DbImageProcessService {
 
         List<SmallImageDO> smallImageDOList = Lists.newArrayList();
         List<SmallImage> smallImageList = largeImage.getSmallImageList();
+        if (CollectionUtils.isEmpty(smallImageList)){
+          continue;
+        }
         for (SmallImage smallImage : smallImageList) {
           smallImageDOList.add(ImageBeanTransUtils.transSmallImageDO(smallImage,articleId, largeImageDO.getId(), taskConfig.getReplacePrefix(),
               FilePathConstant.local_prefix));
@@ -201,7 +206,7 @@ public class DbImageProcessService {
         Boolean flag = smallImageService.batchSave(smallImageDOList);
         if (!flag) {
           log.error("aaa");
-          return Lists.newArrayList();
+          continue;
         }
         for (SmallImageDO smallImageDO : smallImageDOList){
           SmallImageMilvusDTO smallImageMilvusDTO = new SmallImageMilvusDTO();
@@ -295,6 +300,7 @@ public class DbImageProcessService {
     imageRequest.setFileType(articleDO.getFileType());
     imageRequest.setLargePrefixPath(String.format(FilePathConstant.DB_LARGE_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
     imageRequest.setSmallPrefixPath(String.format(FilePathConstant.DB_SMALL_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
+    imageRequest.setPreviewPrefixPath(String.format(FilePathConstant.DB_PREVIEW_PATH, taskConfig.getReplacePrefix(), articleDO.getId()));
     request.add(imageRequest);
     return request;
   }
@@ -317,7 +323,7 @@ public class DbImageProcessService {
       }
     }
 
-    if (CollectionUtils.isAnyEmpty(fileList)){
+    if (CollectionUtils.isEmpty(fileList)){
       log.warn("file Invalid , path {}",filePath);
       return;
     }

@@ -332,6 +332,9 @@ pf4j:
 
 #  scp /Users/fangliu/PycharmProjects/clipmodel/image_similar/algo/0806/frozen_east_text_detection.pb root@server01:/data/yudao
 
+#  scp /Users/fangliu/PycharmProjects/clipmodel/image_similar/algo/0814/best.pt root@server01:/data/yudao
+
+
 # scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@server01:/data/yudao
 
 # scp /Users/fangliu/Code/image_similar/seven-server/yudao-server/target/yudao-server.jar root@api02:/data/yudao && ssh api02 "cd /data/yudao && ./deploy.sh"

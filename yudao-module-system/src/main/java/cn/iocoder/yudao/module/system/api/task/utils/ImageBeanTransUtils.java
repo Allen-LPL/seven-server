@@ -40,24 +40,23 @@ public class ImageBeanTransUtils {
     String path = smallImage.getPath().replace(replacePrefix,local_prefix);
     String name = path.substring(path.lastIndexOf("/")+1);
     log.info("path={},name={}", path, name);
-    String imageUrl = path + "/" + name + ".jpg";
-    String vectorPath = path + "/" + name + ".csv";
+    String vectorPath = path.replace(".jpg",".csv");
     SmallImageDO smallImageDO = new SmallImageDO();
     smallImageDO.setArticleId(articleId);
     smallImageDO.setLargeImageId(largeImageId);
-    File imageFile = new File(imageUrl);
+    File imageFile = new File(path);
     smallImageDO.setImageSize(imageFile.length()/1024);
     smallImageDO.setImageType("small");
-    smallImageDO.setImageName(name + ".jpg");
+    smallImageDO.setImageName(name);
     smallImageDO.setCreator(String.valueOf(WebFrameworkUtils.getLoginUserId()));
-    smallImageDO.setImagePath(imageUrl);
+    smallImageDO.setImagePath(path);
     smallImageDO.setVectorPath(vectorPath);
     smallImageDO.setCreator("1");
     return smallImageDO;
   }
 
   public static List<ProcessImageRequest> getProcessImageRequests(Long taskId, List<ArticleDO> articleDOList,String replacePrefix,
-      String local_prefix, String LARGE_PATH, String SMALL_PATH) {
+      String local_prefix, String LARGE_PATH, String SMALL_PATH, String previewPath) {
     List<ProcessImageRequest> request = Lists.newArrayList();
     for (ArticleDO articleDO : articleDOList) {
       ProcessImageRequest imageRequest = new ProcessImageRequest();
@@ -66,6 +65,7 @@ public class ImageBeanTransUtils {
       imageRequest.setFileType(articleDO.getFileType());
       imageRequest.setLargePrefixPath(String.format(LARGE_PATH, replacePrefix, taskId));
       imageRequest.setSmallPrefixPath(String.format(SMALL_PATH, replacePrefix, taskId));
+      imageRequest.setPreviewPrefixPath(String.format(previewPath, replacePrefix, taskId));
       request.add(imageRequest);
     }
     return request;
