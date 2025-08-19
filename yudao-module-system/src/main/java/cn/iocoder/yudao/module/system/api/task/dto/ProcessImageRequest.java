@@ -14,6 +14,8 @@ public class ProcessImageRequest {
 
   private String smallPrefixPath;
 
+  private String previewPrefixPath;
+
   private String fileType;
 
   private List<String> keywords;

@@ -125,7 +125,7 @@ public class PdfParseService {
     public void transArticleToPdf(ArticleDO updateArticle, PdfParseResultDTO parseResult) {
         // 更新文章标题
         if (parseResult.getTitle() != null) {
-            updateArticle.setArticleTitle(parseResult.getTitle());
+            updateArticle.setArticleTitle(parseResult.getTitle().substring(Math.min(1000, parseResult.getTitle().length())));
         }
 
         // 更新杂志名称
@@ -164,7 +164,7 @@ public class PdfParseService {
 
         // 更新DOI
         if (parseResult.getDoi() != null) {
-            updateArticle.setPmid(parseResult.getDoi()); // 暂时将DOI存储在PMID字段
+            updateArticle.setPmid(parseResult.getDoi().substring(0,Math.min(29,parseResult.getDoi().length()))); // 暂时将DOI存储在PMID字段
         }
     }
 } 
