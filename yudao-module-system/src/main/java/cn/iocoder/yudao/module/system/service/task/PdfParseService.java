@@ -141,8 +141,11 @@ public class PdfParseService {
         // 更新作者姓名列表
         if (parseResult.getAuthors() != null && !parseResult.getAuthors().isEmpty()) {
             updateArticle.setAuthorName(parseResult.getAuthors());
-            // 由于API没有返回作者单位信息，暂时设置为空列表
-            updateArticle.setAuthorInstitution(Lists.newArrayList());
+        }
+
+        // 更新作者单位列表
+        if (parseResult.getAuthorAffiliations() != null && !parseResult.getAuthorAffiliations().isEmpty()) {
+            updateArticle.setAuthorInstitution(parseResult.getAuthorAffiliations());
         }
 
         // 更新发表日期

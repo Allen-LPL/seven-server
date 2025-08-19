@@ -221,6 +221,7 @@ public class ImgSimilarApiService {
     updateImageTask.setTaskStatus(TaskStatusEnum.COMPLETE.getCode()); // 设置为审核完成状态
     updateImageTask.setReviewTime(LocalDateTime.now());
     updateImageTask.setUpdater(String.valueOf(WebFrameworkUtils.getLoginUserId()));
+    updateImageTask.setReviewerId(WebFrameworkUtils.getLoginUserId());
     // 阈值
 //    if (CollectionUtils.isNotEmpty(reqVO.getModelNameList())){
 //      updateImageTask.setModelList(JSONObject.toJSONString(reqVO.getModelNameList()));
@@ -369,6 +370,18 @@ public class ImgSimilarApiService {
             if (Objects.nonNull(preferences.getFeaturePoints())) {
                 resVO.getDefaultFeaturePointsList().forEach(dto -> dto.setSelected(dto.getValue().equals(preferences.getFeaturePoints())));
                 resVO.getDefaultFeaturePointsList().sort(Comparator.comparing(dto -> !dto.getValue().equals(preferences.getFeaturePoints())));
+                resVO.getDefaultFeaturePointsList().forEach(dto -> {
+                  Integer value = dto.getValue();
+                  if (value != null) {
+                    if (value >= 1 && value < 5) {
+                      dto.setName("低相似风险");
+                    } else if (value > 5 && value <= 25) {
+                      dto.setName("中相似风险");
+                    } else if (value > 25) {
+                      dto.setName("高相似风险");
+                    }
+                  }
+                });
             }
         }
     }

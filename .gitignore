@@ -68,3 +68,5 @@ application-my.yaml
 /env-deploy/
 env-deploy.zip
 report/
+report-pdf/
+report-word/
