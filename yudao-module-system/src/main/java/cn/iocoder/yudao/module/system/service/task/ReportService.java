@@ -80,6 +80,10 @@ import cn.iocoder.yudao.module.system.api.task.ImgSimilarApiService;
 import cn.iocoder.yudao.module.system.service.task.TaskSearchPreferencesService;
 import com.alibaba.fastjson.JSON;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageSz;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STPageOrientation;
 
 @Slf4j
 @Service
@@ -181,9 +185,12 @@ public class ReportService {
 
     // 1. 组织 Word 文档内容（模仿 PDF 报告布局与数据）
     try (XWPFDocument doc = new XWPFDocument()) {
-      // ============ 页面布局：第一页顶部留 6cm 红头空（这里用段前距近似实现）============
+      // ============ 页面布局：A4 竖版 + 6cm 顶部空白（红头区）============
+      configureA4Page(doc);
+
+      // 第一页顶部留红头空（段前距方式，仅作用于第一页）
       XWPFParagraph spacer = doc.createParagraph();
-      spacer.setSpacingBefore(3400); // 约 6cm（6 * 567 twips）
+      spacer.setSpacingBefore(6 * 567); // 约 6cm（1cm≈567twips）
 
       // 报告编号（第一页左上角）- 先编号后标题（与前端 PDF 一致）
       XWPFParagraph numP = doc.createParagraph();
@@ -197,6 +204,7 @@ public class ReportService {
       XWPFParagraph title = doc.createParagraph();
       title.setAlignment(ParagraphAlignment.CENTER);
       XWPFRun titleRun = title.createRun();
+      titleRun.addBreak();
       titleRun.setText("图像相似检测报告");
       titleRun.setBold(true);
       titleRun.setFontSize(18);
@@ -218,23 +226,34 @@ public class ReportService {
         
         // 创建论文作者段落（缩进两个中文字符，冒号对齐）
         XWPFParagraph authorPara = doc.createParagraph();
+        authorPara.setAlignment(ParagraphAlignment.LEFT);
         authorPara.setIndentationFirstLine(480); // 缩进两个中文字符（24pt = 480 twips）
+        authorPara.setSpacingBefore(0);
+        authorPara.setSpacingAfter(0);
         XWPFRun authorRun = authorPara.createRun();
         authorRun.setFontSize(12);
         authorRun.setText("  论文作者：" + (first.getAuthorName() == null || first.getAuthorName().isEmpty() ? "" : first.getAuthorName().get(0)));
         
         // 创建作者单位段落（缩进两个中文字符，冒号对齐）
         XWPFParagraph unitPara = doc.createParagraph();
+        unitPara.setAlignment(ParagraphAlignment.LEFT);
         unitPara.setIndentationFirstLine(480); // 缩进两个中文字符（24pt = 480 twips）
+        unitPara.setSpacingBefore(0);
+        unitPara.setSpacingAfter(0);
         XWPFRun unitRun = unitPara.createRun();
         unitRun.setFontSize(12);
         unitRun.setText("  作者单位：" + (first.getAuthorInstitution() == null || first.getAuthorInstitution().isEmpty() ? "" : first.getAuthorInstitution().get(0)));
         
         // 创建论文题目段落（缩进两个中文字符，冒号对齐）
         XWPFParagraph titlePara = doc.createParagraph();
+        // 按需：与用户要求一致，论文题目左对齐且去掉首行缩进，清零段前/段后距以消除间隙
+        titlePara.setAlignment(ParagraphAlignment.LEFT);
         titlePara.setIndentationFirstLine(480); // 缩进两个中文字符（24pt = 480 twips）
+        titlePara.setSpacingBefore(0);
+        titlePara.setSpacingAfter(0);
         XWPFRun titleMetaRun = titlePara.createRun();
         titleMetaRun.setFontSize(12);
+        // 不在 run 末尾 addBreak，保持与下一段正常间距；去掉开头两个空格确保左对齐
         titleMetaRun.setText("  论文题目：" + (first.getArticleTitle() == null || first.getArticleTitle().isEmpty() ? "" : first.getArticleTitle()));
       }
 
@@ -262,6 +281,7 @@ public class ReportService {
         // 使用已有分页接口拿全量（pageSize足够大）
         req.setPageNo(1);
         req.setPageSize(5000);
+        req.setIsSimilar(true);
         PageResult<ImgSimilarQueryResVO> page = imgSimilarApiService.query(req);
         similarsAll = page.getList() == null ? Collections.emptyList() : BeanUtils.toBean(page.getList(), ImgSimilarityDO.class);
       } else {
@@ -291,9 +311,10 @@ public class ReportService {
     
     // 创建检测结果段落（缩进两个中文字符，冒号对齐）
     XWPFParagraph resultPara = doc.createParagraph();
-    resultPara.setIndentationFirstLine(480); // 缩进两个中文字符（24pt = 480 twips）
     XWPFRun resultRun = resultPara.createRun();
     resultRun.setFontSize(12);
+    resultPara.setAlignment(ParagraphAlignment.LEFT);
+    resultPara.setIndentationFirstLine(480); // 缩进两个中文字符（24pt = 480 twips）
     resultRun.setText("  检测结果：尊敬的" + nickName + "，您上传" + uploadCnt + unit + "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "篇图片" : "张图片") + "可能存在相似异常，具体情况如下：");
 
       // ============ 图片对表格（参照 PDF：第一页 1 组、之后每页 3 组）============
@@ -323,10 +344,10 @@ public class ReportService {
 
           // 四列：上传图片、相似图片、块图、线图（若缺失则显示占位文字）
           org.apache.poi.xwpf.usermodel.XWPFTable table = doc.createTable(2, 4);
-          table.setWidth("100%");
-          
-          // 设置列宽比例：上传图片(1/6) + 相似图片(1/6) + 块图(1/3) + 线图(1/3) = 100%
-          setTableColumnWidths(table, new int[]{1667, 1667, 3333, 3333}); // 单位：twips，总计10000
+          // 以 A4 内容宽度为基准，按 1/6、1/6、1/3、1/3 设置列宽，确保表格严格落在 A4 可写区域内
+          int contentWidthTwips = getWordContentWidthTwips(doc);
+          int[] colWidths = new int[]{ contentWidthTwips/6, contentWidthTwips/6, contentWidthTwips/3, contentWidthTwips/3 };
+          setTableWidthAndColumnWidths(table, contentWidthTwips, colWidths);
           
           hideTableBorder(table);
 
@@ -387,7 +408,7 @@ public class ReportService {
           Integer featurePoints = item.getFeaturePointCnt();
           if (featurePoints == null) {
             levelText = "低相似风险";
-          } else if (featurePoints >= 1 && featurePoints < 5) {
+          } else if (featurePoints >= 1 && featurePoints <= 5) {
             levelText = "低相似风险";
           } else if (featurePoints > 5 && featurePoints <= 25) {
             levelText = "中相似风险";
@@ -399,7 +420,6 @@ public class ReportService {
 
           descRun.addBreak();
           descRun.setText("相似程度为【" + levelText + "】【" + (item.getReviewComment() == null ? "暂无评语" : item.getReviewComment()) + "】。");
-          descRun.addBreak();
         }
 
         rendered = end;
@@ -414,6 +434,7 @@ public class ReportService {
       XWPFParagraph footer = doc.createParagraph();
       footer.setAlignment(ParagraphAlignment.RIGHT);
       XWPFRun footerRun = footer.createRun();
+      footerRun.addBreak();
       footerRun.setText("检测机构：中国医学科学院医学信息研究所/图书馆");
       footerRun.addBreak();
       java.time.LocalDate today = java.time.LocalDate.now();
@@ -435,7 +456,7 @@ public class ReportService {
 
       // 3. 上传报告文件（路径前缀区分为 report-word/YYYYMMDD）
       String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-      String filePath = "report-word/" + dateStr;
+      String filePath = "report/" + dateStr;
       MultipartFile[] files = new MultipartFile[] {generated};
       ImageTaskCreateResDTO imageTaskResDTO = fileUploadService.uploadFiles(files, filePath);
       if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isEmpty(imageTaskResDTO.getSuccessFile())) {
@@ -591,6 +612,7 @@ public class ReportService {
         }
         req.setPageNo(1);
         req.setPageSize(5000);
+        req.setIsSimilar(true);
         log.info("req: {}", req);
         PageResult<ImgSimilarQueryResVO> page = imgSimilarApiService.query(req);
         log.info("page.list: {}", page.getList());
@@ -660,7 +682,7 @@ public class ReportService {
 
       // 上传文件
       String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-      String filePath = "report-pdf/" + dateStr;
+      String filePath = "report/" + dateStr;
       MultipartFile[] files = new MultipartFile[] {generated};
       ImageTaskCreateResDTO imageTaskResDTO = fileUploadService.uploadFiles(files, filePath);
       
@@ -933,6 +955,33 @@ public class ReportService {
     return String.format("%d年%d月%d日", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
   }
 
+  /**
+   * 将 Word 文档设置为 A4 页面，四边常规页边距，并在顶部额外保留约 6cm 的“红头”空白区
+   */
+  private void configureA4Page(XWPFDocument document) {
+    CTSectPr sectPr = document.getDocument().getBody().isSetSectPr()
+        ? document.getDocument().getBody().getSectPr()
+        : document.getDocument().getBody().addNewSectPr();
+
+    // 页面大小：A4（宽 11906 twips，高 16838 twips）
+    CTPageSz pageSz = sectPr.isSetPgSz() ? sectPr.getPgSz() : sectPr.addNewPgSz();
+    pageSz.setW(java.math.BigInteger.valueOf(11906));
+    pageSz.setH(java.math.BigInteger.valueOf(16838));
+    pageSz.setOrient(STPageOrientation.PORTRAIT);
+
+    // 页边距：上 6cm（红头区），左右/下 2.54cm（1 英寸 = 1440 twips）。1cm ≈ 567 twips
+    int oneCm = 567;
+    int topMargin = 6 * oneCm;   // 顶部红头区 6cm
+    int regular = 1440;          // 左/右/下 约 2.54cm
+
+    CTPageMar pageMar = sectPr.isSetPgMar() ? sectPr.getPgMar() : sectPr.addNewPgMar();
+    // 全局页边距采用常规 2.54cm；第一页额外的 6cm 红头通过段前距 spacer 控制
+    pageMar.setTop(java.math.BigInteger.valueOf(regular));
+    pageMar.setLeft(java.math.BigInteger.valueOf(regular));
+    pageMar.setRight(java.math.BigInteger.valueOf(regular));
+    pageMar.setBottom(java.math.BigInteger.valueOf(regular));
+  }
+
   // 将图片放入表格单元格；若路径无效则写占位文本
   private void addImageCell(org.apache.poi.xwpf.usermodel.XWPFTable table, int row, int col, String imagePath, String placeholder) {
     try {
@@ -1110,6 +1159,46 @@ public class ReportService {
     } catch (Exception e) {
       log.error("设置表格列宽失败：{}", e.getMessage());
     }
+  }
+
+  /**
+   * 设置表格宽度为内容区宽度，并精确设置各列宽
+   */
+  private void setTableWidthAndColumnWidths(org.apache.poi.xwpf.usermodel.XWPFTable table, int tableWidthTwips, int[] colWidths) {
+    try {
+      org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblPr tblPr = table.getCTTbl().getTblPr();
+      if (tblPr == null) tblPr = table.getCTTbl().addNewTblPr();
+      org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth tblWidth = tblPr.isSetTblW() ? tblPr.getTblW() : tblPr.addNewTblW();
+      tblWidth.setType(org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth.DXA);
+      tblWidth.setW(java.math.BigInteger.valueOf(tableWidthTwips));
+
+      for (org.apache.poi.xwpf.usermodel.XWPFTableRow row : table.getRows()) {
+        for (int i = 0; i < row.getTableCells().size() && i < colWidths.length; i++) {
+          org.apache.poi.xwpf.usermodel.XWPFTableCell cell = row.getCell(i);
+          org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr tcPr = cell.getCTTc().isSetTcPr() ? cell.getCTTc().getTcPr() : cell.getCTTc().addNewTcPr();
+          org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth cw = tcPr.isSetTcW() ? tcPr.getTcW() : tcPr.addNewTcW();
+          cw.setType(org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth.DXA);
+          cw.setW(java.math.BigInteger.valueOf(colWidths[i]));
+        }
+      }
+    } catch (Exception e) {
+      log.error("设置表格宽度失败：{}", e.getMessage());
+    }
+  }
+
+  /**
+   * 计算 Word 文档当前节的可用内容宽度（A4 宽度 - 左右页边距），单位 twips
+   */
+  private int getWordContentWidthTwips(XWPFDocument document) {
+    CTSectPr sectPr = document.getDocument().getBody().isSetSectPr()
+        ? document.getDocument().getBody().getSectPr()
+        : document.getDocument().getBody().addNewSectPr();
+    CTPageSz pgSz = sectPr.isSetPgSz() ? sectPr.getPgSz() : sectPr.addNewPgSz();
+    CTPageMar mar = sectPr.isSetPgMar() ? sectPr.getPgMar() : sectPr.addNewPgMar();
+    int w = Integer.parseInt(pgSz.getW().toString());
+    int left = Integer.parseInt(mar.getLeft().toString());
+    int right = Integer.parseInt(mar.getRight().toString());
+    return Math.max(0, w - left - right);
   }
 
   /**

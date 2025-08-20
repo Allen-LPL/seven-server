@@ -122,13 +122,17 @@ public class ImgSimilarApiService {
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
     List<ImgSimilarQueryResVO> queryResDTOList = pageResult.getList();
 
-    // 获取queryResDTOList中所有sourceArticleId，去重，批量查询文章名组成id->name的map
-    List<Long> sourceArticleIdList = queryResDTOList.stream().map(ImgSimilarQueryResVO::getSourceArticleId).distinct().collect(Collectors.toList());
-    Map<Long, String> sourceArticleIdToNameMap = articleService.getArticleNameMap(sourceArticleIdList);
+    // 获取queryResDTOList中所有sourceArticleId和targetArticleId, sourceArticleId和targetArticleId组合在一个list中，去重，批量查询文章名组成id->name的map
+    List<Long> articleIdList = queryResDTOList.stream().map(ImgSimilarQueryResVO::getSourceArticleId).distinct().collect(Collectors.toList());
+    articleIdList.addAll(queryResDTOList.stream().map(ImgSimilarQueryResVO::getTargetArticleId).distinct().collect(Collectors.toList()));
+    Map<Long, String> articleIdToNameMap = articleService.getArticleNameMap(articleIdList);
 
     for (ImgSimilarQueryResVO imgSimilarQueryResVO : queryResDTOList) {
       if (Objects.nonNull(imgSimilarQueryResVO.getSourceArticleId())){
-        imgSimilarQueryResVO.setSourceArticleName(sourceArticleIdToNameMap.get(imgSimilarQueryResVO.getSourceArticleId()));
+        imgSimilarQueryResVO.setSourceArticleName(articleIdToNameMap.get(imgSimilarQueryResVO.getSourceArticleId()));
+      }
+      if (Objects.nonNull(imgSimilarQueryResVO.getTargetArticleId())){
+        imgSimilarQueryResVO.setTargetArticleName(articleIdToNameMap.get(imgSimilarQueryResVO.getTargetArticleId()));
       }
 
       // 补充创建用户信息
@@ -373,12 +377,14 @@ public class ImgSimilarApiService {
                 resVO.getDefaultFeaturePointsList().forEach(dto -> {
                   Integer value = dto.getValue();
                   if (value != null) {
-                    if (value >= 1 && value < 5) {
+                    if (value >= 1 && value <= 5) {
                       dto.setName("低相似风险");
                     } else if (value > 5 && value <= 25) {
                       dto.setName("中相似风险");
                     } else if (value > 25) {
                       dto.setName("高相似风险");
+                    } else {
+                      dto.setName("低相似风险");
                     }
                   }
                 });
