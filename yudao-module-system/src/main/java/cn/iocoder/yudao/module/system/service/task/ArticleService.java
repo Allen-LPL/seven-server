@@ -35,6 +35,13 @@ public class ArticleService {
     return articleMapper.selectList(queryWrapper);
   }
 
+  public List<ArticleDO> queryListByTaskIds(List<Long> taskIds){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.in("task_id", taskIds);
+    queryWrapper.eq("deleted", 0 );
+    return articleMapper.selectList(queryWrapper);
+  }
+
   public PageResult<ArticleDO> queryPage(FileQueryReqVO reqVO){
     return articleMapper.selectPage(reqVO);
   }

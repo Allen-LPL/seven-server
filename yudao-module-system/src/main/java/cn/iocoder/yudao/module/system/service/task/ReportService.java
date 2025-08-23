@@ -1211,12 +1211,15 @@ public class ReportService {
     List<ReportPageRespVO> reportPageRespVOList = imgReportMapper.selectReportAndTaskPage(pageReqVO);
     Long total = imgReportMapper.selectCounts(pageReqVO);
 
+    List<Long> taskIds = reportPageRespVOList.stream().map(ReportPageRespVO::getTaskId).collect(Collectors.toList());
+    List<ArticleDO> articleDOList = articleService.queryListByTaskIds(taskIds);
+    Map<Long, List<ArticleDO>> articleDOMap = articleDOList.stream().collect(Collectors.groupingBy(ArticleDO::getTaskId));
+
     reportPageRespVOList.forEach(reportPageRespVO -> {
-      List<ArticleDO> articleDOList = articleService.queryListByTaskId(reportPageRespVO.getTaskId());
       if (reportPageRespVO.getFileType().equals("pdf")) {
-        reportPageRespVO.setArticleTitleMap(articleDOList.stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getArticleTitle)));
-        reportPageRespVO.setArticleJournalMap(articleDOList.stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getArticleJournal)));
-        reportPageRespVO.setAuthorNameMap(articleDOList.stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getAuthorName)));
+        reportPageRespVO.setArticleTitleMap(articleDOMap.get(reportPageRespVO.getTaskId()).stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getArticleTitle)));
+        reportPageRespVO.setArticleJournalMap(articleDOMap.get(reportPageRespVO.getTaskId()).stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getArticleJournal)));
+        reportPageRespVO.setAuthorNameMap(articleDOMap.get(reportPageRespVO.getTaskId()).stream().collect(Collectors.toMap(ArticleDO::getId, ArticleDO::getAuthorName)));
       } else {
         reportPageRespVO.setFirstImage(articleDOList.stream()
             .map(ArticleDO::getFilePath)
