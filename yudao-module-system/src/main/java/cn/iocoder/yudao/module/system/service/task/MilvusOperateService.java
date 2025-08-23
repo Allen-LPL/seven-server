@@ -136,8 +136,8 @@ public class MilvusOperateService {
   }
 
   public void batchWriteDataFromDb(String newName,ModelNameEnum modelNameEnum){
-    Long maxId = articleService.maxId();
-    Long minId = articleService.minId();
+    Long maxId = articleService.sourceMaxId();
+    Long minId = articleService.sourceMinId();
 //    Long maxId = 377L;
 //    Long minId = 355L;
     int batch = 10;
@@ -193,17 +193,23 @@ public class MilvusOperateService {
       if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getKeywords())){
         keywordList.add(Lists.newArrayList());
       }else {
-        keywordList.add(imageMilvusDTO.getKeywords().subList(0,Math.min(imageMilvusDTO.getKeywords().size(),5)));
+        List<String> keywords = imageMilvusDTO.getKeywords().subList(0,Math.min(imageMilvusDTO.getKeywords().size(),6));
+        keywords = keywords.stream().map(word -> word.substring(0,Math.min(999,word.length())).toLowerCase()).collect(Collectors.toList());
+        keywordList.add(keywords);
       }
       if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getAuthor())){
         authorList.add(Lists.newArrayList());
       }else {
-        authorList.add(imageMilvusDTO.getAuthor().subList(0,Math.min(imageMilvusDTO.getAuthor().size(),5)));
+        List<String> authors = imageMilvusDTO.getAuthor().subList(0,Math.min(imageMilvusDTO.getAuthor().size(),6));
+        authors = authors.stream().map(word -> word.substring(0,Math.min(999,word.length())).toLowerCase()).collect(Collectors.toList());
+        authorList.add(authors);
       }
       if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getInstitution())){
         institutionList.add(Lists.newArrayList());
       } else {
-        institutionList.add(imageMilvusDTO.getInstitution().subList(0,Math.min(imageMilvusDTO.getInstitution().size(),5)));
+        List<String> institutions = imageMilvusDTO.getInstitution().subList(0,Math.min(imageMilvusDTO.getInstitution().size(),6));
+        institutions = institutions.stream().map(String::toLowerCase).collect(Collectors.toList());
+        institutionList.add(institutions);
       }
 
       if (Objects.isNull(imageMilvusDTO.getArticleDate())){
@@ -213,10 +219,11 @@ public class MilvusOperateService {
       }
 
       if (StringUtils.isNotBlank(imageMilvusDTO.getSpecialty())){
-        specialtyList.add(imageMilvusDTO.getSpecialty());
+        specialtyList.add(imageMilvusDTO.getSpecialty().toLowerCase());
       }else {
         specialtyList.add("");
       }
+
       vectorList.add(imageMilvusDTO.getVectors()); //todo
     }
 
@@ -276,7 +283,7 @@ public class MilvusOperateService {
             .withName(MilvusConstant.keywords)
             .withDataType(DataType.Array)
             .withElementType(DataType.VarChar)
-            .withMaxLength(50)
+            .withMaxLength(1000)
             .withMaxCapacity(15)
             .build())
         .addFieldType(FieldType.newBuilder()
@@ -290,7 +297,7 @@ public class MilvusOperateService {
             .withName(MilvusConstant.institution)
             .withDataType(DataType.Array)
             .withElementType(DataType.VarChar)
-            .withMaxLength(100)
+            .withMaxLength(1000)
             .withMaxCapacity(6)
             .build())
         .addFieldType(FieldType.newBuilder()
@@ -301,7 +308,7 @@ public class MilvusOperateService {
         .addFieldType(FieldType.newBuilder()
             .withName(MilvusConstant.specialty)
             .withDataType(DataType.VarChar)
-            .withMaxLength(100)
+            .withMaxLength(1000)
             .build())
         .addFieldType(FieldType.newBuilder()
             .withName(MilvusConstant.vectors)
@@ -498,17 +505,23 @@ public class MilvusOperateService {
       if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getKeywords())){
         keywordList.add(Lists.newArrayList());
       }else {
-        keywordList.add(imageMilvusDTO.getKeywords().subList(0,Math.min(imageMilvusDTO.getKeywords().size(),5)));
+        List<String> keywords = imageMilvusDTO.getKeywords().subList(0,Math.min(imageMilvusDTO.getKeywords().size(),6));
+        keywords = keywords.stream().map(word -> word.substring(0,Math.min(999,word.length())).toLowerCase()).collect(Collectors.toList());
+        keywordList.add(keywords);
       }
       if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getAuthor())){
         authorList.add(Lists.newArrayList());
       }else {
-        authorList.add(imageMilvusDTO.getAuthor().subList(0,Math.min(imageMilvusDTO.getAuthor().size(),5)));
+        List<String> authors = imageMilvusDTO.getAuthor().subList(0,Math.min(imageMilvusDTO.getAuthor().size(),6));
+        authors = authors.stream().map(word -> word.substring(0,Math.min(999,word.length())).toLowerCase()).collect(Collectors.toList());
+        authorList.add(authors);
       }
       if (CollectionUtils.isAnyEmpty(imageMilvusDTO.getInstitution())){
         institutionList.add(Lists.newArrayList());
       } else {
-        institutionList.add(imageMilvusDTO.getInstitution().subList(0,Math.min(imageMilvusDTO.getInstitution().size(),5)));
+        List<String> institutions = imageMilvusDTO.getInstitution().subList(0,Math.min(imageMilvusDTO.getInstitution().size(),6));
+        institutions = institutions.stream().map(String::toLowerCase).collect(Collectors.toList());
+        institutionList.add(institutions);
       }
 
       if (Objects.isNull(imageMilvusDTO.getArticleDate())){
@@ -518,7 +531,7 @@ public class MilvusOperateService {
       }
 
       if (StringUtils.isNotBlank(imageMilvusDTO.getSpecialty())){
-        specialtyList.add(imageMilvusDTO.getSpecialty());
+        specialtyList.add(imageMilvusDTO.getSpecialty().toLowerCase());
       }else {
         specialtyList.add("");
       }

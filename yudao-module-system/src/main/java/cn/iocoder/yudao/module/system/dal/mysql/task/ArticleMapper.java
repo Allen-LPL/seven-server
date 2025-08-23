@@ -38,4 +38,22 @@ public interface ArticleMapper extends BaseMapperX<ArticleDO> {
     return selectOne(queryWrapper).getId();
   }
 
+  default Long getSourceMaxId(){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.eq("deleted",0);
+    queryWrapper.eq("is_source",1);
+    queryWrapper.orderByDesc("id");
+    queryWrapper.last("limit 1");
+    return selectOne(queryWrapper).getId();
+  }
+
+  default Long getSourceMinId(){
+    QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
+    queryWrapper.eq("deleted",0);
+    queryWrapper.eq("is_source",1);
+    queryWrapper.orderByAsc("id");
+    queryWrapper.last("limit 1");
+    return selectOne(queryWrapper).getId();
+  }
+
 }

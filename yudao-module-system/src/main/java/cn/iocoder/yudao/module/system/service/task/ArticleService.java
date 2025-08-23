@@ -81,6 +81,14 @@ public class ArticleService {
     return  articleMapper.getMinId();
   }
 
+  public Long sourceMaxId(){
+    return  articleMapper.getMaxId();
+  }
+
+  public Long sourceMinId(){
+    return  articleMapper.getMinId();
+  }
+
   public List<ArticleDO> queryByIdsBatch(Long minId,Long maxId,Integer limit){
     QueryWrapper<ArticleDO> queryWrapper = new QueryWrapper<>();
     queryWrapper.between("id", minId, maxId);
