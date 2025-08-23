@@ -65,7 +65,8 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "        AND r.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}" +
             "    </if>" +
             "</where>" +
-            "ORDER BY r.id DESC" +
+            "ORDER BY r.id DESC " +
+            "LIMIT #{reqVO.pageNo}, #{reqVO.pageSize}" +
             "</script>")
     List<ReportPageRespVO> selectReportAndTaskPage(@Param("reqVO") ReportPageReqVO reqVO);
 
