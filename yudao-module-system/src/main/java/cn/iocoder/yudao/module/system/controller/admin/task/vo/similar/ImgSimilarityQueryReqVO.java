@@ -31,4 +31,6 @@ public class ImgSimilarityQueryReqVO extends PageParam {
   @Schema(description = "相似度")
   private Double similarScoreThreshold;
 
+  @Schema(description = "是否相似")
+  private Boolean isSimilar;
 }

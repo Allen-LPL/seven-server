@@ -36,6 +36,9 @@ public class ImgSimilarQueryResVO {
   @Schema(description = "目标文章id")
   private Long targetArticleId;
 
+  @Schema(description = "目标文章名")
+  private String targetArticleName;
+
   @Schema(description = "目标小图id")
   private Long targetSmallImageId;
 

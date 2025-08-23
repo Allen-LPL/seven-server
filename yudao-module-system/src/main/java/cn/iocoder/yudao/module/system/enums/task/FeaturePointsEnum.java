@@ -12,9 +12,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum FeaturePointsEnum {
 
-    FIVE(">=5个", 5),
-
-    ZERO(">0个", 0),
+    SIX(">5个", 6),
 
     TWO(">=2个", 2),
 

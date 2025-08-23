@@ -55,11 +55,11 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "    <if test='reqVO.taskId != null'>" +
             "        AND r.task_id = #{reqVO.taskId}" +
             "    </if>" +
+            "    <if test='reqVO.reportStatus != null'>" +
+            "        AND t.review_result = #{reqVO.reportStatus}" +
+            "    </if>" +
             "    <if test='reqVO.taskType != null'>" +
             "        AND t.task_type = #{reqVO.taskType}" +
-            "    </if>" +
-            "    <if test='reqVO.reportStatus != null'>" +
-            "        AND r.status = #{reqVO.reportStatus}" +
             "    </if>" +
             "    <if test='reqVO.createTime != null and reqVO.createTime.length == 2'>" +
             "        AND r.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}" +
@@ -82,16 +82,16 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "    <if test='reqVO.taskId != null'>" +
             "        AND r.task_id = #{reqVO.taskId}" +
             "    </if>" +
+            "    <if test='reqVO.reportStatus != null'>" +
+            "        AND t.review_result = #{reqVO.reportStatus}" +
+            "    </if>" +
             "    <if test='reqVO.taskType != null'>" +
             "        AND t.task_type = #{reqVO.taskType}" +
-            "    </if>" +
-            "    <if test='reqVO.reportStatus != null'>" +
-            "        AND r.status = #{reqVO.reportStatus}" +
             "    </if>" +
             "    <if test='reqVO.createTime != null and reqVO.createTime.length == 2'>" +
             "        AND r.create_time BETWEEN #{reqVO.createTime[0]} AND #{reqVO.createTime[1]}" +
             "    </if>" +
             "</where>" +
             "</script>")
-    Long selectCount(@Param("reqVO") ReportPageReqVO reqVO);
+    Long selectCounts(@Param("reqVO") ReportPageReqVO reqVO);
 }

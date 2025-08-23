@@ -11,6 +11,9 @@ public class PdfParseResultDTO {
     @JsonProperty("authors")
     private List<String> authors;
 
+    @JsonProperty("author_affiliations")
+    private List<String> authorAffiliations;
+
     @JsonProperty("doi")
     private String doi;
 

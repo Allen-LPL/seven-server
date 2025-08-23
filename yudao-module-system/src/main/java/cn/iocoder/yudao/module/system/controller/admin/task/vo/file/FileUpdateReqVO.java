@@ -30,5 +30,8 @@ public class FileUpdateReqVO {
 
         @Schema(description = "作者列表", example = "[\"张三\", \"李四\"]")
         private List<String> authorName;
+
+        @Schema(description = "作者单位列表", example = "[\"北京大学\", \"清华大学\"]")
+        private List<String> authorInstitution;
     }
 } 

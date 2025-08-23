@@ -49,6 +49,32 @@ public class ReportController {
     return reportService.generateReport(reqVO, file);
   }
 
+  /**
+   * 生成 Word 报告接口（.doc 或 .docx）
+   *
+   * 说明：前端已生成 Word 文件并以 multipart/form-data 上传，后端负责持久化并记录。
+   */
+  @PostMapping(value = "/generate/word", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Operation(summary = "生成 Word 报告")
+//  @PreAuthorize("@ss.hasPermission('system:report:generate')")
+  public CommonResult<Long> generateWordReport(@Valid ReportGenerateReqVO reqVO,
+                                               @RequestParam("file") MultipartFile file) {
+    return reportService.generateWordReport(reqVO, file);
+  }
+
+  /**
+   * 生成 PDF 报告接口（直接使用 iText 生成）
+   *
+   * 说明：后端直接使用 iText 库生成 PDF 文档，性能更优，布局更精确。
+   */
+  @PostMapping(value = "/generate/pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Operation(summary = "生成 PDF 报告")
+//  @PreAuthorize("@ss.hasPermission('system:report:generate')")
+  public CommonResult<Long> generatePdfReport(@Valid ReportGenerateReqVO reqVO,
+                                              @RequestParam("file") MultipartFile file) {
+    return reportService.generatePdfReport(reqVO, file);
+  }
+
 
   @GetMapping("/get")
   @Operation(summary = "查询报告详情")

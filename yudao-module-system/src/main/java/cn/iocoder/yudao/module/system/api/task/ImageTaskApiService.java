@@ -206,10 +206,11 @@ public class ImageTaskApiService {
         }
       }
 
-      // 补充论文标题、杂志社和作者
+      // 补充论文标题、杂志社、作者、作者单位
       Map<Long, String> articleTitleMap = Maps.newHashMap();
       Map<Long, String> articleJournalMap = Maps.newHashMap();
       Map<Long, List<String>> authorNameMap = Maps.newHashMap();
+      Map<Long, List<String>> authorInstitutionMap = Maps.newHashMap();
       List<String> fileUrlList = Lists.newArrayList();
       List<String> imageList = Lists.newArrayList();
 
@@ -219,6 +220,7 @@ public class ImageTaskApiService {
           articleTitleMap.put(articleDO.getId(), articleDO.getArticleTitle());
           articleJournalMap.put(articleDO.getId(), articleDO.getArticleJournal());
           authorNameMap.put(articleDO.getId(), articleDO.getAuthorName());
+          authorInstitutionMap.put(articleDO.getId(), articleDO.getAuthorInstitution());
           fileUrlList.add(articleDO.getFilePath());
         } else {
           imageList.add(articleDO.getFilePath());
@@ -230,6 +232,7 @@ public class ImageTaskApiService {
       queryResDTO.setArticleTitleMap(articleTitleMap);
       queryResDTO.setArticleJournalMap(articleJournalMap);
       queryResDTO.setAuthorNameMap(authorNameMap);
+      queryResDTO.setAuthorInstitutionMap(authorInstitutionMap);
     }
     return pageResult;
   }

@@ -92,8 +92,12 @@ public class ArticleApiService {
     log.info("deleteArticleById【1/4】start delete milvus, articleId = {}", id);
     List<SmallImageDO> smallImageDOList = smallImageService.queryByArticleId(id);
     List<Long> smallImageIds = smallImageDOList.stream().map(SmallImageDO::getId).collect(Collectors.toList());
-    for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
-      milvusOperateService.deleteByPrimaryId(smallImageIds, modelNameEnum.getCollectionName());
+    if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(smallImageIds)) {
+      for (ModelNameEnum modelNameEnum : ModelNameEnum.values()) {
+        milvusOperateService.deleteByPrimaryId(smallImageIds, modelNameEnum.getCollectionName());
+      }
+    } else {
+      log.info("deleteArticleById【1/4】skip milvus delete because smallImageIds is empty, articleId = {}", id);
     }
     log.info("deleteArticleById【1/4】end delete milvus, articleId = {}, smallSize", id);
 
@@ -102,8 +106,8 @@ public class ArticleApiService {
       return CommonResult.error(500, "请先选择文章");
     }
     Integer count = articleService.deleteById(id);
-    if (count > 0) {
-      throw new RuntimeException("删除文章失败： {}" + id);
+    if (count == null || count <= 0) {
+      throw new RuntimeException("删除文章失败：" + id);
     }
     log.info("deleteArticleById【2/4】end delete article, id = {}", id);
 
@@ -152,7 +156,6 @@ public class ArticleApiService {
 
   public void updateFilesInBatch(FileUpdateReqVO updateReqVO) {
 
-    log.info("updateFilesInBatch【1/3】start assemble param");
     List<ArticleDO> articleDOList = Lists.newArrayList();
     for (FileUpdateReqVO.FileUpdateItem item : updateReqVO.getFiles()) {
       // 创建一个 ArticleDO 对象用于更新
@@ -161,17 +164,15 @@ public class ArticleApiService {
       articleUpdate.setArticleTitle(item.getArticleTitle());
       articleUpdate.setArticleJournal(item.getArticleJournal());
       articleUpdate.setAuthorName(item.getAuthorName());
+      articleUpdate.setAuthorInstitution(item.getAuthorInstitution());
       articleDOList.add(articleUpdate);
     }
-    log.info("updateFilesInBatch【1/3】end assemble param, size={}", articleDOList.size());
 
     // 调用 Mapper 更新数据库中的记录
-    log.info("updateFilesInBatch【2/3】start update article");
     Boolean flag = articleMapper.updateBatch(articleDOList);
-    log.info("updateFilesInBatch【2/3】end update article, flag={}, size = {}", flag, articleDOList.size());
+    log.info("批量更新文章信息, flag={}, size = {}", flag, articleDOList.size());
 
     // 开始更新Milvus
-    log.info("updateFilesInBatch【3/3】start update milvus");
     int batch = 50;
     List<SmallImageMilvusDTO> smallImageMilvusDTOList = Lists.newArrayList();
     for (ArticleDO articleDO : articleDOList) {
@@ -195,7 +196,6 @@ public class ArticleApiService {
     if (CollectionUtils.isNotEmpty(smallImageMilvusDTOList)){
       milvusOperateService.updateByPrimaryId(smallImageMilvusDTOList);
     }
-    log.info("updateFilesInBatch【3/3】end update milvus");
   }
 
 }

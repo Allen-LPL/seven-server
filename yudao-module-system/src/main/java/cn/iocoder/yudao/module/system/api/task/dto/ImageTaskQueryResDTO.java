@@ -126,6 +126,11 @@ public class ImageTaskQueryResDTO {
    */
   private Map<Long, List<String>> authorNameMap;
 
+  /**
+   * 作者单位
+   */
+  private Map<Long, List<String>> authorInstitutionMap;
+
   private String fileType;
 
   private String role;

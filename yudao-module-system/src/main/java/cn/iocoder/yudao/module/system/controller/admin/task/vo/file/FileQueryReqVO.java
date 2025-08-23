@@ -31,5 +31,7 @@ public class FileQueryReqVO extends PageParam {
   @Schema(description = "id")
   private Long id;
 
+  @Schema(description = "是否是源图")
+  private Boolean isSource;
 
 }
