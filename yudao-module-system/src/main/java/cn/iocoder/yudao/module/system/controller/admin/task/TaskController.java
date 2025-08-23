@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -103,6 +104,19 @@ public class TaskController {
       return imageTaskApiService.reviewTask(reviewReqVO);
     }catch (Exception e) {
       log.error("allocate error，",e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
+  /**
+   * 标记/取消任务案例
+   */
+  @PutMapping("/case-flag")
+  public CommonResult<String> caseFlag(@RequestBody ImageTaskUpdateReqVO updateReqVO) {
+    try {
+      return imageTaskApiService.updateCaseFlag(updateReqVO);
+    } catch (Exception e) {
+      log.error("update case flag error，", e);
       return CommonResult.error(new ErrorCode(500, e.getMessage()));
     }
   }

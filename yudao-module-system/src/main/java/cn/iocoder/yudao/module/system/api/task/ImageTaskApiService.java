@@ -462,5 +462,29 @@ public class ImageTaskApiService {
     return CommonResult.success("success");
   }
 
+  /**
+   * 标记/取消任务案例
+   */
+  public CommonResult<String> updateCaseFlag(ImageTaskUpdateReqVO updateReqVO) {
+    Long id = updateReqVO.getId();
+    if (Objects.isNull(id)) {
+      return CommonResult.error(500, "任务id不能为空");
+    }
+    ImageTaskDO imageTaskDO = imageTaskService.getById(id);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + id + "】");
+    }
+
+    // 更新案例标识
+    ImageTaskDO updateTask = new ImageTaskDO();
+    updateTask.setId(id);
+    updateTask.setIsCase(Boolean.TRUE.equals(updateReqVO.getIsCase()) ? 1 : 0);
+    Integer sum = imageTaskService.update(updateTask);
+    if (Objects.isNull(sum) || sum < 1) {
+      return CommonResult.error(500, "更新案例标识失败，请联系管理员");
+    }
+    return CommonResult.success("success");
+  }
+
 
 }

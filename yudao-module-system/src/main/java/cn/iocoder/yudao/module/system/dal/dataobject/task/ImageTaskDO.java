@@ -89,4 +89,9 @@ public class ImageTaskDO extends BaseDO {
 
   private String taskNo;
 
+  /**
+   * 是否为案例展示（0 否，1 是）
+   */
+  private Integer isCase;
+
 }

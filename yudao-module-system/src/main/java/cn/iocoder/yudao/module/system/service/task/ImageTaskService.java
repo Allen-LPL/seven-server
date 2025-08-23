@@ -50,6 +50,9 @@ public class ImageTaskService {
       updateWrapper.set("review_result", imageTaskDO.getReviewResult());
       updateWrapper.set("review_time", LocalDateTime.now());
     }
+    if (Objects.nonNull(imageTaskDO.getIsCase())){
+      updateWrapper.set("is_case", imageTaskDO.getIsCase());
+    }
     updateWrapper.set("update_time", LocalDateTime.now());
     updateWrapper.eq("id", imageTaskDO.getId());
     return imageTaskMapper.update(updateWrapper);
