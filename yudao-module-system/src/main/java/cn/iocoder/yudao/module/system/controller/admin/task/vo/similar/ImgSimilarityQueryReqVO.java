@@ -26,11 +26,15 @@ public class ImgSimilarityQueryReqVO extends PageParam {
   private List<String> imageTypeList;
 
   @Schema(description = "特征点数量")
-  private Integer featurePoints = 5;
+  private Integer featurePoints = 2;
 
   @Schema(description = "相似度")
   private Double similarScoreThreshold;
 
   @Schema(description = "是否相似")
   private Boolean isSimilar;
+
+  private Integer featurePointStart;
+
+  private Integer featurePointEnd;
 }
