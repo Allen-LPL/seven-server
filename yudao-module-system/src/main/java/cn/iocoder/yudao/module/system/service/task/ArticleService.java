@@ -89,11 +89,11 @@ public class ArticleService {
   }
 
   public Long sourceMaxId(){
-    return  articleMapper.getMaxId();
+    return  articleMapper.getSourceMaxId();
   }
 
   public Long sourceMinId(){
-    return  articleMapper.getMinId();
+    return  articleMapper.getSourceMinId();
   }
 
   public List<ArticleDO> queryByIdsBatch(Long minId,Long maxId,Integer limit){

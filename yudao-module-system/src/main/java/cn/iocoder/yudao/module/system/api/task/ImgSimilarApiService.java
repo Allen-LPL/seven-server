@@ -112,10 +112,20 @@ public class ImgSimilarApiService {
       reqVO.setSimilarScoreThreshold(ModelNameEnum.DenseNet121.getScore());
     }
     if (Objects.isNull(reqVO.getFeaturePoints())){
-      reqVO.setFeaturePoints(5);
+      reqVO.setFeaturePoints(2);
     }
     if (CollectionUtils.isEmpty(reqVO.getImageTypeList())){
       reqVO.setImageTypeList(Lists.newArrayList(ImageTypeEnum.MEDICAL.getCode()));
+    }
+
+    if (reqVO.getFeaturePoints() == 2){
+      reqVO.setFeaturePointStart(1);
+      reqVO.setFeaturePointEnd(6);
+    }else if (reqVO.getFeaturePoints() == 6){
+      reqVO.setFeaturePointStart(6);
+      reqVO.setFeaturePointEnd(26);
+    }else if (reqVO.getFeaturePoints() == 100){
+      reqVO.setFeaturePointStart(26);
     }
 
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);

@@ -59,7 +59,7 @@ public class TestMilvus {
 
   @Test
   public void testDeleteCollection(){
-    String collectionName = "clip_vectors_1755919409364";
+    String collectionName = "clip_vectors_1755922027938";
     milvusOperateService.collectionDelete(collectionName);
   }
 
