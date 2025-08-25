@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.controller.admin.task.vo.file;
 
 
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
+import com.google.type.DateTime;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,5 +34,17 @@ public class FileQueryReqVO extends PageParam {
 
   @Schema(description = "是否是源图")
   private Boolean isSource;
+
+  private String fileType;
+
+  private Boolean isImage;
+
+  private String fileName;
+
+  @Schema(description = "上传时间-开始")
+  private DateTime beginUploadTime;
+
+  @Schema(description = "上传时间-结束")
+  private DateTime endUploadTime;
 
 }
