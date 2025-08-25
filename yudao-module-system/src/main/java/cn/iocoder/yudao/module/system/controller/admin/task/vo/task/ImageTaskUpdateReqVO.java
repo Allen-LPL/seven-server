@@ -25,4 +25,7 @@ public class ImageTaskUpdateReqVO {
 
     @Schema(description = "杂志名列表") 
     private List<String> articleJournalList;
+
+    @Schema(description = "是否案例（true=是，false=否）")
+    private Boolean isCase;
 } 

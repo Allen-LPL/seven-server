@@ -41,4 +41,7 @@ public class ImageTaskQueryReqVO extends PageParam {
   @Schema(description = "任务id", example = "1")
   private Long taskId;
 
+  @Schema(description = "仅展示案例", example = "true")
+  private Boolean caseOnly;
+
 }

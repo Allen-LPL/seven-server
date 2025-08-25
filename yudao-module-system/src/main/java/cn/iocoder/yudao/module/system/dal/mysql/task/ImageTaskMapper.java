@@ -17,6 +17,7 @@ public interface ImageTaskMapper extends BaseMapperX<ImageTaskDO> {
         .eqIfPresent(ImageTaskDO::getTaskId, reqVO.getTaskId())
         .eqIfPresent(ImageTaskDO::getCreatorId,reqVO.getCreatorId())
         .eqIfPresent(ImageTaskDO::getReviewerId,reqVO.getReviewId())
+        .eqIfPresent(ImageTaskDO::getIsCase, Boolean.TRUE.equals(reqVO.getCaseOnly()) ? 1 : null)
         .betweenIfPresent(ImageTaskDO::getCreateTime, reqVO.getStartTime(), reqVO.getEndTime())
         .orderByDesc(ImageTaskDO::getCreateTime,ImageTaskDO::getUpdateTime));
   }
