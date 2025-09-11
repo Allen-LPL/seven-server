@@ -8,14 +8,22 @@ import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.system.controller.admin.oauth2.vo.open.OAuth2OpenAccessTokenRespVO;
 import cn.iocoder.yudao.module.system.controller.admin.oauth2.vo.open.OAuth2OpenAuthorizeInfoRespVO;
 import cn.iocoder.yudao.module.system.controller.admin.oauth2.vo.open.OAuth2OpenCheckTokenRespVO;
+import cn.iocoder.yudao.module.system.controller.admin.oauth2.vo.open.OneClickLoginTicketCreateReqVO;
+import cn.iocoder.yudao.module.system.controller.admin.oauth2.vo.open.OneClickLoginTicketCreateRespVO;
+import cn.iocoder.yudao.module.system.controller.admin.oauth2.vo.open.TokenByEmailReqVO;
 import cn.iocoder.yudao.module.system.convert.oauth2.OAuth2OpenConvert;
 import cn.iocoder.yudao.module.system.dal.dataobject.oauth2.OAuth2AccessTokenDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.oauth2.OAuth2ApproveDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.oauth2.OAuth2ClientDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.enums.oauth2.OAuth2GrantTypeEnum;
+import cn.iocoder.yudao.module.system.dal.redis.oauth2.OneClickLoginTicketRedisDAO;
+import cn.iocoder.yudao.module.system.dal.redis.oauth2.OneClickLoginTicketRedisDAO.TicketValue;
+import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import cn.iocoder.yudao.module.system.service.oauth2.OAuth2ApproveService;
 import cn.iocoder.yudao.module.system.service.oauth2.OAuth2ClientService;
 import cn.iocoder.yudao.module.system.service.oauth2.OAuth2GrantService;
@@ -32,9 +40,12 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
+import java.util.UUID;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.BAD_REQUEST;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception0;
@@ -69,6 +80,10 @@ public class OAuth2OpenController {
     private OAuth2ApproveService oauth2ApproveService;
     @Resource
     private OAuth2TokenService oauth2TokenService;
+    @Resource
+    private OneClickLoginTicketRedisDAO oneClickLoginTicketRedisDAO;
+    @Resource
+    private AdminUserService adminUserService;
 
     /**
      * 对应 Spring Security OAuth 的 TokenEndpoint 类的 postAccessToken 方法
@@ -82,6 +97,7 @@ public class OAuth2OpenController {
      * 注意，默认需要传递 client_id + client_secret 参数
      */
     @PostMapping("/token")
+    @TenantIgnore
     @PermitAll
     @Operation(summary = "获得访问令牌", description = "适合 code 授权码模式，或者 implicit 简化模式；在 sso.vue 单点登录界面被【获取】调用")
     @Parameters({
@@ -292,6 +308,111 @@ public class OAuth2OpenController {
             throw exception0(BAD_REQUEST.getCode(), "client_id 或 client_secret 未正确传递");
         }
         return clientIdAndSecret;
+    }
+
+    // ========== 一键登录：创建票据 ==========
+    @TenantIgnore
+    @PostMapping("/internal/login-ticket")
+    @PermitAll
+    @Operation(summary = "创建一键登录票据", description = "服务端到服务端，使用Basic校验客户端")
+    public CommonResult<OneClickLoginTicketCreateRespVO> createOneClickLoginTicket(HttpServletRequest request,
+                                                                                   @Valid @RequestBody OneClickLoginTicketCreateReqVO reqVO) {
+        // 1. 校验客户端
+        String[] clientIdAndSecret = obtainBasicAuthorization(request);
+        OAuth2ClientDO client = oauth2ClientService.validOAuthClientFromCache(clientIdAndSecret[0], clientIdAndSecret[1],
+                null, null, null);
+
+        // 2. 根据邮箱查找用户并校验
+        String email = reqVO.getEmail();
+        Assert.notBlank(email, "邮箱不能为空");
+        AdminUserDO user = adminUserService.getUserByEmail(email);
+        Assert.notNull(user, "邮箱对应的用户不存在");
+
+        // 3. 生成一次性票据并写入 Redis
+        String ticket = UUID.randomUUID().toString().replace("-", "");
+        TicketValue value = new TicketValue();
+        value.setUserId(user.getId());
+        value.setUserType(getUserType());
+        value.setClientId(client.getClientId());
+        value.setRedirectUri(null); // 由消费端传入
+        value.setScope(reqVO.getScope());
+        value.setState(reqVO.getState());
+        Integer ttlSeconds = reqVO.getTtlSeconds() != null ? reqVO.getTtlSeconds() : 60;
+        if (ttlSeconds <= 0 || ttlSeconds > 300) { // 上限5分钟
+            ttlSeconds = 60;
+        }
+        oneClickLoginTicketRedisDAO.set(ticket, value, Duration.ofSeconds(ttlSeconds));
+
+        // 4. 返回
+        OneClickLoginTicketCreateRespVO resp = new OneClickLoginTicketCreateRespVO();
+        resp.setTicket(ticket);
+        resp.setExpiresIn(ttlSeconds);
+        return success(resp);
+    }
+
+    // ========== 一键登录：消费票据，签发授权码 ==========
+    @GetMapping("/one-click-login")
+    @TenantIgnore
+    @PermitAll
+    @Operation(summary = "一键登录入口：消费票据并重定向到redirect_uri携带code")
+    @Parameters({
+            @Parameter(name = "ticket", required = true, description = "一次性票据"),
+            @Parameter(name = "client_id", required = true, description = "客户端编号"),
+            @Parameter(name = "redirect_uri", required = true, description = "回调地址"),
+            @Parameter(name = "state", description = "状态")
+    })
+    public CommonResult<String> oneClickLogin(@RequestParam("ticket") String ticket,
+                                              @RequestParam("client_id") String clientId,
+                                              @RequestParam("redirect_uri") String redirectUri,
+                                              @RequestParam(value = "state", required = false) String state) {
+        // 1. 读取并校验票据
+        TicketValue value = oneClickLoginTicketRedisDAO.get(ticket);
+        if (value == null) {
+            throw exception0(BAD_REQUEST.getCode(), "票据无效或已过期");
+        }
+        if (!StrUtil.equals(value.getClientId(), clientId)) {
+            throw exception0(BAD_REQUEST.getCode(), "client_id 不匹配");
+        }
+
+        // 2. 校验 client & redirectUri 合法性
+        OAuth2ClientDO client = oauth2ClientService.validOAuthClientFromCache(clientId, null,
+                OAuth2GrantTypeEnum.AUTHORIZATION_CODE.getGrantType(), OAuth2Utils.buildScopes(value.getScope()), redirectUri);
+
+        // 3. 为该用户签发授权码
+        List<String> scopes = OAuth2Utils.buildScopes(value.getScope());
+        String code = oauth2GrantService.grantAuthorizationCodeForCode(value.getUserId(), value.getUserType(),
+                client.getClientId(), scopes, redirectUri, StrUtil.blankToDefault(state, value.getState()));
+
+        // 4. 作废票据
+        oneClickLoginTicketRedisDAO.delete(ticket);
+
+        // 5. 返回重定向 URL
+        String url = OAuth2Utils.buildAuthorizationCodeRedirectUri(redirectUri, code,
+                StrUtil.blankToDefault(state, value.getState()));
+        return success(url);
+    }
+
+    // ========== 简化：一步直发 access_token（Basic + email） ==========
+    @PostMapping("/internal/token-by-email")
+    @PermitAll
+    @Operation(summary = "根据邮箱直发访问令牌", description = "服务端到服务端，使用Basic校验客户端；返回access_token")
+    public CommonResult<OAuth2OpenAccessTokenRespVO> createTokenByEmail(HttpServletRequest request,
+                                                                        @Valid @RequestBody TokenByEmailReqVO reqVO) {
+        // 1. 校验客户端
+        String[] clientIdAndSecret = obtainBasicAuthorization(request);
+        OAuth2ClientDO client = oauth2ClientService.validOAuthClientFromCache(clientIdAndSecret[0], clientIdAndSecret[1],
+                null, null, null);
+
+        // 2. 查找用户
+        AdminUserDO user = adminUserService.getUserByEmail(reqVO.getEmail());
+        Assert.notNull(user, "邮箱对应的用户不存在");
+
+        // 3. 直发 token（自定义生命周期：1 天）
+        List<String> scopes = OAuth2Utils.buildScopes(reqVO.getScope());
+        long oneDaySeconds = 24L * 60 * 60 * 60;
+        OAuth2AccessTokenDO token = oauth2TokenService.createAccessToken(
+                user.getId(), getUserType(), client.getClientId(), scopes, oneDaySeconds);
+        return success(OAuth2OpenConvert.INSTANCE.convert(token));
     }
 
 }

@@ -69,6 +69,16 @@ public class OAuth2TokenServiceImpl implements OAuth2TokenService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public OAuth2AccessTokenDO createAccessToken(Long userId, Integer userType, String clientId, List<String> scopes, long ttlSeconds) {
+        OAuth2ClientDO clientDO = oauth2ClientService.validOAuthClientFromCache(clientId);
+        // 创建刷新令牌（仍按客户端配置）
+        OAuth2RefreshTokenDO refreshTokenDO = createOAuth2RefreshToken(userId, userType, clientDO, scopes);
+        // 创建访问令牌（自定义有效期）
+        return createOAuth2AccessToken(refreshTokenDO, clientDO, ttlSeconds);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public OAuth2AccessTokenDO refreshAccessToken(String refreshToken, String clientId) {
         // 查询访问令牌
         OAuth2RefreshTokenDO refreshTokenDO = oauth2RefreshTokenMapper.selectByRefreshToken(refreshToken);
@@ -168,6 +178,19 @@ public class OAuth2TokenServiceImpl implements OAuth2TokenService {
         accessTokenDO.setTenantId(TenantContextHolder.getTenantId()); // 手动设置租户编号，避免缓存到 Redis 的时候，无对应的租户编号
         oauth2AccessTokenMapper.insert(accessTokenDO);
         // 记录到 Redis 中
+        oauth2AccessTokenRedisDAO.set(accessTokenDO);
+        return accessTokenDO;
+    }
+
+    private OAuth2AccessTokenDO createOAuth2AccessToken(OAuth2RefreshTokenDO refreshTokenDO, OAuth2ClientDO clientDO, long ttlSeconds) {
+        OAuth2AccessTokenDO accessTokenDO = new OAuth2AccessTokenDO().setAccessToken(generateAccessToken())
+                .setUserId(refreshTokenDO.getUserId()).setUserType(refreshTokenDO.getUserType())
+                .setUserInfo(buildUserInfo(refreshTokenDO.getUserId(), refreshTokenDO.getUserType()))
+                .setClientId(clientDO.getClientId()).setScopes(refreshTokenDO.getScopes())
+                .setRefreshToken(refreshTokenDO.getRefreshToken())
+                .setExpiresTime(LocalDateTime.now().plusSeconds(ttlSeconds));
+        accessTokenDO.setTenantId(TenantContextHolder.getTenantId());
+        oauth2AccessTokenMapper.insert(accessTokenDO);
         oauth2AccessTokenRedisDAO.set(accessTokenDO);
         return accessTokenDO;
     }

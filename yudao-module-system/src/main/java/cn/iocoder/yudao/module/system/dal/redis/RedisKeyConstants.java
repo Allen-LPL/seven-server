@@ -68,6 +68,22 @@ public interface RedisKeyConstants {
     String OAUTH2_ACCESS_TOKEN = "oauth2_access_token:%s";
 
     /**
+     * 刷新令牌的缓存
+     * <p>
+     * KEY 格式：oauth2_refresh_token:{token}
+     * VALUE 数据类型：String 刷新令牌信息
+     */
+    String OAUTH2_REFRESH_TOKEN = "oauth2_refresh_token:%s";
+
+    /**
+     * 一次性一键登录票据
+     * <p>
+     * KEY 格式：oauth2_one_click_ticket:{ticket}
+     * VALUE 数据类型：String 票据内容 JSON
+     */
+    String OAUTH2_ONE_CLICK_TICKET = "oauth2_one_click_ticket:%s";
+
+    /**
      * 站内信模版的缓存
      * <p>
      * KEY 格式：notify_template:{code}
