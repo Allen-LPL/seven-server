@@ -20,6 +20,8 @@ public interface ArticleMapper extends BaseMapperX<ArticleDO> {
         .likeIfPresent(ArticleDO::getArticleJournal, reqVO.getArticleJournal())
         .betweenIfPresent(ArticleDO::getCreateTime, reqVO.getStartTime(), reqVO.getEndTime())
         .eqIfPresent(ArticleDO::getIsSource, reqVO.getIsSource())
+        .eqIfPresent(ArticleDO::getIsImage,reqVO.getIsImage())
+        .likeIfPresent(ArticleDO::getFileName,reqVO.getFileName())
         .orderByDesc(ArticleDO::getCreateTime,ArticleDO::getUpdateTime));
   }
 

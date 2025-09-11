@@ -21,6 +21,7 @@ import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.LargeImageService;
 import cn.iocoder.yudao.module.system.service.task.MilvusOperateService;
 import cn.iocoder.yudao.module.system.service.task.SmallImageService;
+import com.alibaba.druid.util.StringUtils;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -59,6 +60,13 @@ public class ArticleApiService {
   private MilvusOperateService milvusOperateService;
 
   public CommonResult<PageResult<FileQueryResVO>> pageQuery(FileQueryReqVO fileQueryReqVO) {
+
+    if (StringUtils.equals(fileQueryReqVO.getFileType(),"image")){
+      fileQueryReqVO.setIsImage(Boolean.TRUE);
+    }else if (StringUtils.equals(fileQueryReqVO.getFileType(),"pdf")){
+      fileQueryReqVO.setIsImage(Boolean.FALSE);
+    }
+
     PageResult<ArticleDO> pageResult = articleService.queryPage(fileQueryReqVO);
     PageResult<FileQueryResVO> finalResult = BeanUtils.toBean(pageResult, FileQueryResVO.class);
     for (FileQueryResVO fileQueryResVO : finalResult.getList()) {
