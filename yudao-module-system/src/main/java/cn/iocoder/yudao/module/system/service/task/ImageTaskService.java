@@ -77,4 +77,18 @@ public class ImageTaskService {
       return 0; // 如果任务不存在，直接返回0
     }
   }
+
+  /**
+   * 逻辑删除任务
+   *
+   * @param id 任务ID
+   * @return 删除结果
+   */
+  public Integer deleteTask(Long id) {
+    UpdateWrapper<ImageTaskDO> updateWrapper = new UpdateWrapper<>();
+    updateWrapper.set("deleted", 1); // 逻辑删除标记
+    updateWrapper.set("update_time", LocalDateTime.now());
+    updateWrapper.eq("id", id);
+    return imageTaskMapper.update(updateWrapper);
+  }
 }

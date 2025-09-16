@@ -14,6 +14,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgReportDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.TaskSearchPreferencesDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImgReportMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -304,7 +305,7 @@ public class ReportService {
     // 获取用户昵称
     String nickName = "?"; // 默认昵称
     if (task != null && task.getCreatorId() != null) {
-      cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO creator = adminUserService.getUser(task.getCreatorId());
+      AdminUserDO creator = adminUserService.getUserByUserId(task.getCreatorId());
       if (creator != null && creator.getNickname() != null) {
         nickName = creator.getNickname();
       }

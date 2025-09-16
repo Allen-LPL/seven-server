@@ -150,4 +150,17 @@ public class TaskController {
     }
   }
 
+  /**
+   * 逻辑删除任务
+   */
+  @RequestMapping(method = RequestMethod.DELETE, value = "/delete/{taskId}")
+  public CommonResult<String> deleteTask(@PathVariable("taskId") Long taskId) {
+    try {
+      return imageTaskApiService.deleteTask(taskId);
+    } catch (Exception e) {
+      log.error("delete task error，", e);
+      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+    }
+  }
+
 }

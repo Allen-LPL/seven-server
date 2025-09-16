@@ -30,6 +30,8 @@ import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.dept.PostService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.tenant.TenantService;
+
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.mzt.logapi.context.LogRecordContext;
 import com.mzt.logapi.service.impl.DiffParseFunction;
@@ -50,6 +52,7 @@ import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.
 import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.*;
 import static cn.iocoder.yudao.module.system.enums.LogRecordConstants.*;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 
 import java.util.ArrayList;
 
@@ -307,6 +310,13 @@ public class AdminUserServiceImpl implements AdminUserService {
         reqVO.setStatus(0); // 默认查询开启状态的用户
         reqVO.setDeleted(0); // 默认查询未删除的用户
         return userMapper.selectPage(reqVO, getDeptCondition(reqVO.getDeptId()), userIds);
+    }
+
+    @Override
+    @InterceptorIgnore(tenantLine = "true", dataPermission = "true")
+    @TenantIgnore
+    public AdminUserDO getUserByUserId(Long id) {
+        return DataPermissionUtils.executeIgnore(() -> userMapper.selectById(id));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.system.dal.mysql.statistics;
 
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -127,35 +128,45 @@ public interface StatisticsMapper {
     List<Map<String, Object>> getAbnormalTrendList(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
     /**
-     * 获取异常领域分布数据
+     * 获取异常领域分布数据（按文章关键词 article_keywords 统计）
      *
      * @param startTime 开始时间
      * @param endTime   结束时间
-     * @return 领域-数量映射
+     * @return 关键词-数量映射（field: 关键词, count: 数量）
      */
     @Select("<script>"
-            + "SELECT IFNULL(a.medical_specialty, '未知') as field, COUNT(*) as count "
+            + "SELECT IFNULL(jt.keyword, '未知') as field, COUNT(*) as count "
             + "FROM iisd_img_similarity s "
             + "LEFT JOIN iisd_article a ON s.source_article_id = a.id "
+            + "LEFT JOIN JSON_TABLE(COALESCE(a.article_keywords, JSON_ARRAY()), '$[*]' COLUMNS (keyword VARCHAR(255) PATH '$')) jt ON TRUE "
             + "WHERE s.deleted = 0 "
+            + "AND (jt.keyword IS NOT NULL AND jt.keyword != '' "
+            + "AND LOWER(jt.keyword) != 'and' AND LOWER(jt.keyword) != 'or') "
             + "<if test='startTime != null'> AND s.create_time >= #{startTime} </if>"
             + "<if test='endTime != null'> AND s.create_time &lt;= #{endTime} </if>"
             + "GROUP BY field "
-            + "ORDER BY count DESC"
+            + "ORDER BY count DESC "
+            + "LIMIT 10"
             + "</script>")
+    @InterceptorIgnore(tenantLine = "true")
     List<Map<String, Object>> getFieldDistributionList(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
     /**
-     * 获取异常单位分布数据
+     * 获取异常单位分布数据（按文章作者单位 author_institution 统计）
      *
-     * @return 单位ID-数量映射
+     * @return 单位名称-数量映射（institution: 单位名称, count: 数量）
      */
-    @Select("SELECT u.dept_id as deptId, COUNT(*) as count "
+    @Select("<script>"
+            + "SELECT jt.institution as institution, COUNT(*) as count "
             + "FROM iisd_img_similarity s "
-            + "LEFT JOIN system_users u ON s.creator = u.id "
-            + "WHERE s.deleted = 0 AND u.dept_id IS NOT NULL "
-            + "GROUP BY u.dept_id "
-            + "ORDER BY count DESC")
+            + "LEFT JOIN iisd_article a ON s.source_article_id = a.id "
+            + "LEFT JOIN JSON_TABLE(COALESCE(a.author_institution, JSON_ARRAY()), '$[*]' COLUMNS (institution VARCHAR(512) PATH '$')) jt ON TRUE "
+            + "WHERE s.deleted = 0 AND jt.institution IS NOT NULL AND jt.institution != '' "
+            + "GROUP BY jt.institution "
+            + "ORDER BY count DESC "
+            + "LIMIT 10"
+            + "</script>")
+    @InterceptorIgnore(tenantLine = "true")
     List<Map<String, Object>> getUnitDistributionList();
 
     /**
@@ -199,4 +210,4 @@ public interface StatisticsMapper {
             + "JOIN system_role r ON ur.role_id = r.id "
             + "WHERE u.id = #{userId} AND r.code = 'super_admin' AND u.deleted = 0 AND r.deleted = 0")
     boolean isAdminUser(@Param("userId") Long userId);
-} 
+}

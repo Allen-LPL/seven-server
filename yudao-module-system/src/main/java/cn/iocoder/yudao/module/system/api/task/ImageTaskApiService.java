@@ -556,5 +556,36 @@ public class ImageTaskApiService {
     return CommonResult.success("success");
   }
 
+  /**
+   * 逻辑删除任务
+   *
+   * @param taskId 任务ID
+   * @return 处理结果
+   */
+  public CommonResult<String> deleteTask(Long taskId) {
+    // 参数校验
+    if (Objects.isNull(taskId)) {
+      return CommonResult.error(500, "任务id不能为空");
+    }
+
+    // 查询任务是否存在
+    ImageTaskDO imageTaskDO = imageTaskService.getById(taskId);
+    if (Objects.isNull(imageTaskDO)) {
+      return CommonResult.error(500, "任务不存在【" + taskId + "】");
+    }
+
+    // 检查任务状态，已完成的任务不允许删除
+    if (Objects.equals(imageTaskDO.getTaskStatus(), 4)) { // 4 = 审核完成
+      return CommonResult.error(500, "已完成的任务不允许删除");
+    }
+
+    // 执行逻辑删除
+    Integer result = imageTaskService.deleteTask(taskId);
+    if (Objects.isNull(result) || result < 1) {
+      return CommonResult.error(500, "删除任务失败，请联系管理员");
+    }
+
+    return CommonResult.success("success");
+  }
 
 }

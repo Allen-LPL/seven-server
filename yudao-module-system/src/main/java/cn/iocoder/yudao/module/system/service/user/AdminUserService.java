@@ -136,6 +136,14 @@ public interface AdminUserService {
     AdminUserDO getUser(Long id);
 
     /**
+     * 通过用户 ID 查询用户
+     *
+     * @param id 用户ID
+     * @return 用户对象信息
+     */
+    AdminUserDO getUserByUserId(Long id);
+
+    /**
      * 获得指定部门的用户数组
      *
      * @param deptIds 部门数组

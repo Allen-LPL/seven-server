@@ -4,6 +4,7 @@ package cn.iocoder.yudao.module.system.controller.admin.task;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ReportGenerateReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ReportPageReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.report.ReportPageRespVO;
@@ -56,7 +57,6 @@ public class ReportController {
    */
   @PostMapping(value = "/generate/word", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "生成 Word 报告")
-//  @PreAuthorize("@ss.hasPermission('system:report:generate')")
   public CommonResult<Long> generateWordReport(@Valid ReportGenerateReqVO reqVO,
                                                @RequestParam("file") MultipartFile file) {
     return reportService.generateWordReport(reqVO, file);
@@ -69,7 +69,6 @@ public class ReportController {
    */
   @PostMapping(value = "/generate/pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "生成 PDF 报告")
-//  @PreAuthorize("@ss.hasPermission('system:report:generate')")
   public CommonResult<Long> generatePdfReport(@Valid ReportGenerateReqVO reqVO,
                                               @RequestParam("file") MultipartFile file) {
     return reportService.generatePdfReport(reqVO, file);
