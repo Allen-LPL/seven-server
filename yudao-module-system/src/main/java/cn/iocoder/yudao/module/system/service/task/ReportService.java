@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.system.service.task;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
@@ -223,7 +224,7 @@ public class ReportService {
       if ("pdf".equalsIgnoreCase(fileType) && articleDOList != null && !articleDOList.isEmpty()) {
         ArticleDO first = articleDOList.stream().findFirst().orElse(null);
         log.info("first: {}", first);
-        
+
         // 创建论文作者段落（缩进两个中文字符，冒号对齐）
         XWPFParagraph authorPara = doc.createParagraph();
         authorPara.setAlignment(ParagraphAlignment.LEFT);
@@ -233,7 +234,7 @@ public class ReportService {
         XWPFRun authorRun = authorPara.createRun();
         authorRun.setFontSize(12);
         authorRun.setText("  论文作者：" + (first.getAuthorName() == null || first.getAuthorName().isEmpty() ? "" : first.getAuthorName().get(0)));
-        
+
         // 创建作者单位段落（缩进两个中文字符，冒号对齐）
         XWPFParagraph unitPara = doc.createParagraph();
         unitPara.setAlignment(ParagraphAlignment.LEFT);
@@ -243,7 +244,7 @@ public class ReportService {
         XWPFRun unitRun = unitPara.createRun();
         unitRun.setFontSize(12);
         unitRun.setText("  作者单位：" + (first.getAuthorInstitution() == null || first.getAuthorInstitution().isEmpty() ? "" : first.getAuthorInstitution().get(0)));
-        
+
         // 创建论文题目段落（缩进两个中文字符，冒号对齐）
         XWPFParagraph titlePara = doc.createParagraph();
         // 按需：与用户要求一致，论文题目左对齐且去掉首行缩进，清零段前/段后距以消除间隙
@@ -273,7 +274,7 @@ public class ReportService {
           req.setImageTypeList(JSON.parseArray(searchPreferences.getImageTypes(), String.class));
         }
         // 特征点
-        req.setFeaturePoints(searchPreferences.getFeaturePoints());
+        req.setFeaturePoints(JSON.parseArray(searchPreferences.getFeaturePoints(), Integer.class));
         // 相似度阈值（后端用0-1）
         if (searchPreferences.getSimilarScoreThreshold() != null) {
           req.setSimilarScoreThreshold(searchPreferences.getSimilarScoreThreshold());
@@ -299,7 +300,7 @@ public class ReportService {
               uploadCnt = task != null && task.getTotalImages() != null ? task.getTotalImages() : 0;
       unit = "张图片";
     }
-    
+
     // 获取用户昵称
     String nickName = "?"; // 默认昵称
     if (task != null && task.getCreatorId() != null) {
@@ -308,7 +309,7 @@ public class ReportService {
         nickName = creator.getNickname();
       }
     }
-    
+
     // 创建检测结果段落（缩进两个中文字符，冒号对齐）
     XWPFParagraph resultPara = doc.createParagraph();
     XWPFRun resultRun = resultPara.createRun();
@@ -338,7 +339,7 @@ public class ReportService {
           if (circle == 1) {
             gRun.addBreak();
             gRun.addBreak();
-          } 
+          }
           gRun.setText("【" + groupIndex + "】");
           gRun.setBold(true);
 
@@ -348,7 +349,7 @@ public class ReportService {
           int contentWidthTwips = getWordContentWidthTwips(doc);
           int[] colWidths = new int[]{ contentWidthTwips/6, contentWidthTwips/6, contentWidthTwips/3, contentWidthTwips/3 };
           setTableWidthAndColumnWidths(table, contentWidthTwips, colWidths);
-          
+
           hideTableBorder(table);
 
           // 第一行：图片
@@ -384,12 +385,12 @@ public class ReportService {
             log.warn("compare 接口调用失败: {}", e.getMessage());
           }
         }
-          
+
           log.info("sourcePath: {}", sourcePath);
           log.info("targetPath: {}", targetPath);
           log.info("blockImage: {}", blockImage);
           log.info("dotImage: {}", dotImage);
-          
+
           addImageCell(table, 0, 0, sourcePath, "上传图片缺失");
           addImageCell(table, 0, 1, targetPath, "相似图片缺失");
           addImageCell(table, 0, 2, blockImage, "块图缺失");
@@ -500,7 +501,7 @@ public class ReportService {
 
   /**
    * 生成PDF报告（使用iText7直接生成，包含用户名水印）
-   * 
+   *
    * @param reqVO 报告生成请求参数
    * @param file 前端传入的占位文件
    * @return 报告ID
@@ -511,7 +512,7 @@ public class ReportService {
       String todayStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
       LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
       LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0);
-      
+
       long todayCount = imgReportMapper.selectCount(new LambdaQueryWrapperX<ImgReportDO>().between(ImgReportDO::getCreateTime, startOfDay, endOfDay));
       String reportNumber = todayStr + String.format("%05d", todayCount + 1);
 
@@ -519,7 +520,7 @@ public class ReportService {
       Long taskId = reqVO.getTaskId();
       ImageTaskDO task = imageTaskService.getById(taskId);
       String fileType = task != null ? task.getFileType() : "";
-      
+
       String nickName = "未知用户";
       if (task != null && task.getCreatorId() != null) {
         cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO creator = adminUserService.getUser(task.getCreatorId());
@@ -533,14 +534,14 @@ public class ReportService {
       PdfWriter writer = new PdfWriter(baos);
       PdfDocument pdfDoc = new PdfDocument(writer);
       Document document = new Document(pdfDoc, PageSize.A4);
-      
+
       // 设置中文字体（多重回退方案）
       PdfFont chineseFont = createSafeFont();
       log.info("PDF字体创建成功，开始生成内容");
 
       // 6cm顶部留白（约170pt）
       document.setTopMargin(170);
-      
+
       // 报告编号（左上角）
       Paragraph reportNumberPara = new Paragraph("报告编号：【" + reportNumber + "】")
           .setFont(chineseFont)
@@ -548,7 +549,7 @@ public class ReportService {
           .setFontColor(ColorConstants.BLACK)
           .setTextAlignment(TextAlignment.LEFT);
       document.add(reportNumberPara);
-      
+
       // 标题（居中，黑体）
       Paragraph title = new Paragraph("图像相似检测报告")
           .setFont(chineseFont)
@@ -564,27 +565,27 @@ public class ReportService {
         List<ArticleDO> articleDOList = articleService.queryListByTaskId(taskId);
         if (articleDOList != null && !articleDOList.isEmpty()) {
           ArticleDO first = articleDOList.get(0);
-          
+
           // 论文作者（缩进两个中文字符）
-          Paragraph authorPara = new Paragraph("  论文作者：" + 
+          Paragraph authorPara = new Paragraph("  论文作者：" +
               (first.getAuthorName() == null || first.getAuthorName().isEmpty() ? "" : first.getAuthorName().get(0)))
               .setFont(chineseFont)
               .setFontSize(12)
               .setFontColor(ColorConstants.BLACK)
               .setFirstLineIndent(24); // 首行缩进24pt（约2个中文字符）
           document.add(authorPara);
-          
+
           // 作者单位
-          Paragraph unitPara = new Paragraph("  作者单位：" + 
+          Paragraph unitPara = new Paragraph("  作者单位：" +
               (first.getAuthorInstitution() == null || first.getAuthorInstitution().isEmpty() ? "" : first.getAuthorInstitution().get(0)))
               .setFont(chineseFont)
               .setFontSize(12)
               .setFontColor(ColorConstants.BLACK)
               .setFirstLineIndent(24);
           document.add(unitPara);
-          
+
           // 论文题目
-          Paragraph titlePara = new Paragraph("  论文题目：" + 
+          Paragraph titlePara = new Paragraph("  论文题目：" +
               (first.getArticleTitle() == null ? "" : first.getArticleTitle()))
               .setFont(chineseFont)
               .setFontSize(12)
@@ -606,7 +607,7 @@ public class ReportService {
         if (searchPreferences.getImageTypes() != null) {
           req.setImageTypeList(JSON.parseArray(searchPreferences.getImageTypes(), String.class));
         }
-        req.setFeaturePoints(searchPreferences.getFeaturePoints());
+        req.setFeaturePoints(JSON.parseArray(searchPreferences.getFeaturePoints(), Integer.class));
         if (searchPreferences.getSimilarScoreThreshold() != null) {
           req.setSimilarScoreThreshold(searchPreferences.getSimilarScoreThreshold());
         }
@@ -623,7 +624,7 @@ public class ReportService {
       int similarCnt = similarsAll == null ? 0 : similarsAll.size();
       int uploadCnt = 0;
       String unit = "";
-      
+
       if ("pdf".equalsIgnoreCase(fileType)) {
         List<ArticleDO> articleDOList = articleService.queryListByTaskId(taskId);
         uploadCnt = articleDOList == null ? 0 : articleDOList.size();
@@ -632,9 +633,9 @@ public class ReportService {
         uploadCnt = task != null && task.getTotalImages() != null ? task.getTotalImages() : 0;
         unit = "张图片";
       }
-      
-      Paragraph resultPara = new Paragraph("  检测结果：尊敬的" + nickName + "，您上传" + uploadCnt + unit + 
-          "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "篇图片" : "张图片") + 
+
+      Paragraph resultPara = new Paragraph("  检测结果：尊敬的" + nickName + "，您上传" + uploadCnt + unit +
+          "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "篇图片" : "张图片") +
           "可能存在相似异常，具体情况如下：")
           .setFont(chineseFont)
           .setFontSize(12)
@@ -665,7 +666,7 @@ public class ReportService {
       } catch (Exception e) {
         log.warn("水印添加失败，但继续生成PDF: {}", e.getMessage());
       }
-      
+
       // 关闭文档以完成内容写入
       document.close();
       log.info("PDF文档生成完成，大小: {} bytes", baos.size());
@@ -685,7 +686,7 @@ public class ReportService {
       String filePath = "report/" + dateStr;
       MultipartFile[] files = new MultipartFile[] {generated};
       ImageTaskCreateResDTO imageTaskResDTO = fileUploadService.uploadFiles(files, filePath);
-      
+
       if (!Boolean.TRUE.equals(imageTaskResDTO.getSuccess()) || CollectionUtils.isEmpty(imageTaskResDTO.getSuccessFile())) {
         return CommonResult.error(500, "PDF报告文件上传失败");
       }
@@ -720,12 +721,12 @@ public class ReportService {
       int totalPairs = similarsAll.size();
       int groupIndex = 0; // 全局序号，从 1 开始
       String staticPath = "http://101.37.104.90:48080/admin-api/infra/file/29/get/";
-      
+
       log.info("开始添加{}个相似图片对到PDF", totalPairs);
 
       for (ImgSimilarityDO item : similarsAll) {
         groupIndex++;
-        
+
         // 添加组标题 【n】
         Paragraph groupTitle = new Paragraph("【" + groupIndex + "】")
             .setFont(font)
@@ -738,7 +739,7 @@ public class ReportService {
         // 创建表格：2行4列（上传图片、相似图片、块图、线图）
         com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(4);
         table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
-        
+
         // 获取图片路径
         String sourcePath = getImagePath(item.getSourceSmallImageId(), staticPath);
         String targetPath = getImagePath(item.getTargetSmallImageId(), staticPath);
@@ -777,7 +778,7 @@ public class ReportService {
         // 添加相似程度和评语
         String levelText = getSimilarityLevelText(item.getSimilarityScore());
         String reviewComment = item.getReviewComment() == null ? "暂无评语" : item.getReviewComment();
-        
+
         Paragraph desc = new Paragraph("相似程度为【" + levelText + "】【" + reviewComment + "】。")
             .setFont(font)
             .setFontSize(12)
@@ -787,9 +788,9 @@ public class ReportService {
 
         log.debug("已添加第{}个相似图片对", groupIndex);
       }
-      
+
       log.info("相似图片对添加完成，共{}个", totalPairs);
-      
+
     } catch (Exception e) {
       log.error("添加相似图片对失败：{}", e.getMessage(), e);
     }
@@ -852,7 +853,7 @@ public class ReportService {
 
   /**
    * 为PDF的所有页面添加用户名水印
-   * 
+   *
    * @param pdfDoc PDF文档对象
    * @param watermarkText 水印文本（用户名）
    * @param font 字体
@@ -861,48 +862,48 @@ public class ReportService {
     try {
       int pageCount = pdfDoc.getNumberOfPages();
       log.info("开始为{}页PDF添加水印：{}", pageCount, watermarkText);
-      
+
       for (int i = 1; i <= pageCount; i++) {
         PdfPage page = pdfDoc.getPage(i);
         Rectangle pageSize = page.getPageSize();
-        
+
         // 创建新的Canvas用于添加水印
         PdfCanvas canvas = new PdfCanvas(page.newContentStreamBefore(), page.getResources(), page.getDocument());
-        
+
         // 设置透明度
         PdfExtGState gState = new PdfExtGState();
         gState.setFillOpacity(0.15f); // 15%透明度
         canvas.setExtGState(gState);
-        
+
         // 设置水印字体和颜色
         canvas.setFillColor(ColorConstants.LIGHT_GRAY);
         canvas.setFontAndSize(font, 48);
-        
+
         // 计算水印位置（页面中心）
         float x = pageSize.getWidth() / 2;
         float y = pageSize.getHeight() / 2;
-        
+
         // 保存图形状态
         canvas.saveState();
-        
+
         // 移动到水印位置并旋转45度
         canvas.concatMatrix((float) Math.cos(Math.toRadians(45)), (float) Math.sin(Math.toRadians(45)),
                            (float) -Math.sin(Math.toRadians(45)), (float) Math.cos(Math.toRadians(45)), x, y);
-        
+
         // 添加水印文本
         canvas.beginText();
         canvas.moveText(-50, 0); // 调整文本位置使其居中
         canvas.showText(watermarkText);
         canvas.endText();
-        
+
         // 恢复图形状态
         canvas.restoreState();
-        
+
         log.debug("已为第{}页添加水印", i);
       }
-      
+
       log.info("PDF水印添加完成，共{}页", pageCount);
-      
+
     } catch (Exception e) {
       log.error("添加PDF水印失败：{}", e.getMessage(), e);
       // 不抛出异常，确保PDF生成流程能继续
@@ -911,7 +912,7 @@ public class ReportService {
 
   /**
    * 创建安全的字体（多重回退方案）
-   * 
+   *
    * @return PDF字体对象
    */
   private PdfFont createSafeFont() {
@@ -922,7 +923,7 @@ public class ReportService {
         "Arial Unicode MS",           // Unicode字体
         StandardFonts.HELVETICA       // 最后的保险方案
     };
-    
+
     for (String fontOption : fontOptions) {
       try {
         if (fontOption.contains(",")) {
@@ -935,7 +936,7 @@ public class ReportService {
         log.debug("字体加载失败，尝试下一个方案: {}", fontOption, e);
       }
     }
-    
+
     // 如果所有方案都失败，使用最基础的字体
     try {
       return PdfFontFactory.createFont(StandardFonts.HELVETICA);
@@ -947,7 +948,7 @@ public class ReportService {
 
   /**
    * 获取当前时间字符串
-   * 
+   *
    * @return 格式化的时间字符串
    */
   private String getCurrentTimeString() {
@@ -987,14 +988,14 @@ public class ReportService {
     try {
       if (imagePath != null && !imagePath.trim().isEmpty() && !imagePath.contains("null")) {
         log.info("尝试插入图片：{}", imagePath);
-        
+
         // 支持 HTTP(S) 与 本地文件两种来源
         XWPFParagraph p = table.getRow(row).getCell(col).getParagraphs().get(0);
         p.setAlignment(ParagraphAlignment.CENTER); // 居中对齐
         XWPFRun r = p.createRun();
         java.io.InputStream is;
         String fileName;
-        
+
         if (imagePath.startsWith("http")) {
           URL url = new URL(imagePath);
           URLConnection conn = url.openConnection();
@@ -1014,7 +1015,7 @@ public class ReportService {
           is = new java.io.FileInputStream(f);
           fileName = f.getName();
         }
-        
+
         // 确定图片类型
         int pictureType;
         String lowerPath = imagePath.toLowerCase();
@@ -1027,7 +1028,7 @@ public class ReportService {
         } else {
           pictureType = XWPFDocument.PICTURE_TYPE_JPEG; // 默认JPEG
         }
-        
+
         // 根据列的宽度比例计算图片尺寸，保持固定高度，按比例调整宽度
         int imageHeight = 80; // 固定高度80像素
         int imageWidth;
@@ -1043,7 +1044,7 @@ public class ReportService {
           default:
             imageWidth = 80;
         }
-        
+
         try (java.io.InputStream autoClose = is) {
           // 按表格列宽比例设置图片大小，让图片填充表格单元格
           r.addPicture(autoClose, pictureType, fileName, Units.toEMU(imageWidth), Units.toEMU(imageHeight));
@@ -1073,13 +1074,13 @@ public class ReportService {
       if (tblPr == null) {
         tblPr = table.getCTTbl().addNewTblPr();
       }
-      
+
       // 获取或创建表格边框
       org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblBorders borders = tblPr.getTblBorders();
       if (borders == null) {
         borders = tblPr.addNewTblBorders();
       }
-      
+
       // 设置所有边框为NONE
       setBorderToNone(borders.addNewTop());
       setBorderToNone(borders.addNewBottom());
@@ -1087,7 +1088,7 @@ public class ReportService {
       setBorderToNone(borders.addNewRight());
       setBorderToNone(borders.addNewInsideH());
       setBorderToNone(borders.addNewInsideV());
-      
+
       // 同时设置每个单元格的边框为NONE
       for (org.apache.poi.xwpf.usermodel.XWPFTableRow row : table.getRows()) {
         for (org.apache.poi.xwpf.usermodel.XWPFTableCell cell : row.getTableCells()) {
@@ -1105,13 +1106,13 @@ public class ReportService {
           setBorderToNone(cellBorders.addNewRight());
         }
       }
-      
+
       log.info("表格边框已隐藏");
     } catch (Exception e) {
       log.error("隐藏表格边框失败：{}", e.getMessage());
     }
   }
-  
+
   // 设置边框为NONE的辅助方法
   private void setBorderToNone(org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBorder border) {
     border.setVal(org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
@@ -1119,7 +1120,7 @@ public class ReportService {
     border.setSpace(java.math.BigInteger.ZERO);
     border.setColor("FFFFFF"); // 白色
   }
-  
+
   // 设置表格列宽比例
   private void setTableColumnWidths(org.apache.poi.xwpf.usermodel.XWPFTable table, int[] widths) {
     try {
@@ -1128,7 +1129,7 @@ public class ReportService {
       if (tblPr == null) {
         tblPr = table.getCTTbl().addNewTblPr();
       }
-      
+
       // 设置表格宽度为100%
       org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth tblWidth = tblPr.getTblW();
       if (tblWidth == null) {
@@ -1136,7 +1137,7 @@ public class ReportService {
       }
       tblWidth.setType(org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth.DXA);
       tblWidth.setW(java.math.BigInteger.valueOf(10000)); // 总宽度10000 twips
-      
+
       // 设置每列的宽度
       for (org.apache.poi.xwpf.usermodel.XWPFTableRow row : table.getRows()) {
         for (int i = 0; i < row.getTableCells().size() && i < widths.length; i++) {
@@ -1145,7 +1146,7 @@ public class ReportService {
           if (tcPr == null) {
             tcPr = cell.getCTTc().addNewTcPr();
           }
-          
+
           org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth cellWidth = tcPr.getTcW();
           if (cellWidth == null) {
             cellWidth = tcPr.addNewTcW();
@@ -1154,7 +1155,7 @@ public class ReportService {
           cellWidth.setW(java.math.BigInteger.valueOf(widths[i]));
         }
       }
-      
+
       log.info("表格列宽设置完成: {}", java.util.Arrays.toString(widths));
     } catch (Exception e) {
       log.error("设置表格列宽失败：{}", e.getMessage());
@@ -1208,8 +1209,17 @@ public class ReportService {
    * @return 报告分页结果
    */
   public PageResult<ReportPageRespVO> getReportPage(ReportPageReqVO pageReqVO) {
-    List<ReportPageRespVO> reportPageRespVOList = imgReportMapper.selectReportAndTaskPage(pageReqVO);
-    Long total = imgReportMapper.selectCounts(pageReqVO);
+    pageReqVO.setPageNo(pageReqVO.getPageNo() - 1);
+    Long creatorId = cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils.getLoginUserId();
+    List<ReportPageRespVO> reportPageRespVOList = imgReportMapper.selectReportAndTaskPage(pageReqVO, creatorId);
+    Long total = imgReportMapper.selectCounts(pageReqVO, creatorId);
+    log.info("total: {}, reportPageRespVOList: {}", total, reportPageRespVOList);
+    if (total == null || total == 0) {
+      return new PageResult<>(reportPageRespVOList, total);
+    }
+   if (CollectionUtil.isEmpty(reportPageRespVOList)) {
+    return new PageResult<>(reportPageRespVOList, total);
+   }
 
     List<Long> taskIds = reportPageRespVOList.stream().map(ReportPageRespVO::getTaskId).collect(Collectors.toList());
     List<ArticleDO> articleDOList = articleService.queryListByTaskIds(taskIds);

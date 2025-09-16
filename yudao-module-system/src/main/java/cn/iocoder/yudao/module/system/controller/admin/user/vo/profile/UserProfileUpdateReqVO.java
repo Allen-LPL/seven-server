@@ -49,4 +49,6 @@ public class UserProfileUpdateReqVO {
     @Schema(description = "用户类型", example = "researcher")
     private String userType;
 
+    @Schema(description = "所在单位", example = "1")
+    private Integer deptId;
 }

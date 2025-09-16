@@ -27,7 +27,7 @@ public class TaskSearchPreferencesService {
         } else {
             preferences.setImageTypes(null);
         }
-        preferences.setFeaturePoints(reqVO.getFeaturePoints());
+        preferences.setFeaturePoints(JSON.toJSONString(reqVO.getFeaturePoints()));
         preferences.setSimilarScoreThreshold(reqVO.getSimilarScoreThreshold());
         if (Objects.isNull(preferences.getId())) {
             taskSearchPreferencesMapper.insert(preferences);

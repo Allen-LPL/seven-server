@@ -13,6 +13,7 @@ public interface ImageTaskMapper extends BaseMapperX<ImageTaskDO> {
   default PageResult<ImageTaskDO> selectPage(ImageTaskQueryReqVO reqVO) {
 
     return selectPage(reqVO, new LambdaQueryWrapperX<ImageTaskDO>()
+        .eqIfPresent(ImageTaskDO::getId, reqVO.getId())
         .eqIfPresent(ImageTaskDO::getTaskType, reqVO.getTaskType())
         .eqIfPresent(ImageTaskDO::getTaskId, reqVO.getTaskId())
         .eqIfPresent(ImageTaskDO::getCreatorId,reqVO.getCreatorId())

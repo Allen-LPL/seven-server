@@ -54,16 +54,16 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     private String createEmailCode(String email, Integer scene, String ip) {
         // 校验是否可以发送验证码，不用筛选场景
         EmailCodeDO lastEmailCode = emailCodeMapper.selectLastByEmail(email, null, null);
-        if (lastEmailCode != null) {
-            if (LocalDateTimeUtil.between(lastEmailCode.getCreateTime(), LocalDateTime.now()).toMillis()
-                    < emailCodeProperties.getSendFrequency().toMillis()) { // 发送过于频繁
-                throw exception(EMAIL_CODE_SEND_TOO_FAST);
-            }
-            if (isToday(lastEmailCode.getCreateTime()) && // 必须是今天，才能计算超过当天的上限
-                    lastEmailCode.getTodayIndex() >= emailCodeProperties.getSendMaximumQuantityPerDay()) { // 超过当天发送的上限。
-                throw exception(EMAIL_CODE_EXCEED_SEND_MAXIMUM_QUANTITY_PER_DAY);
-            }
-        }
+//        if (lastEmailCode != null) {
+//            if (LocalDateTimeUtil.between(lastEmailCode.getCreateTime(), LocalDateTime.now()).toMillis()
+//                    < emailCodeProperties.getSendFrequency().toMillis()) { // 发送过于频繁
+//                throw exception(EMAIL_CODE_SEND_TOO_FAST);
+//            }
+//            if (isToday(lastEmailCode.getCreateTime()) && // 必须是今天，才能计算超过当天的上限
+//                    lastEmailCode.getTodayIndex() >= emailCodeProperties.getSendMaximumQuantityPerDay()) { // 超过当天发送的上限。
+//                throw exception(EMAIL_CODE_EXCEED_SEND_MAXIMUM_QUANTITY_PER_DAY);
+//            }
+//        }
 
         // 创建验证码记录
         String code = String.format("%0" + emailCodeProperties.getEndCode().toString().length() + "d",

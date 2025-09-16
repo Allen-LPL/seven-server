@@ -14,6 +14,9 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class ImageTaskQueryReqVO extends PageParam {
 
+  @Schema(description = "id", example = "1")
+  private Long id;
+
   @Schema(description = "关键词", example = "[]")
   private List<String> keyword;
 

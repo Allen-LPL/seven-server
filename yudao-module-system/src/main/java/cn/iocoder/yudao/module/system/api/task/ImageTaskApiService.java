@@ -9,7 +9,6 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
 import cn.iocoder.yudao.module.system.api.task.common.FileUploadService;
 import cn.iocoder.yudao.module.system.api.task.common.TaskImageProcessService;
-import cn.iocoder.yudao.module.system.api.task.common.PdfArticleParseService;
 import cn.iocoder.yudao.module.system.api.task.dto.FileContent;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskCreateResDTO;
 import cn.iocoder.yudao.module.system.api.task.dto.ImageTaskQueryResDTO;
@@ -29,6 +28,7 @@ import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
+import cn.iocoder.yudao.module.system.service.notify.NotifySendService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
@@ -38,9 +38,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Collections;
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -76,6 +81,9 @@ public class ImageTaskApiService {
 
   @Resource
   private AdminUserInfoServiceImpl userInfoService;
+
+  @Resource
+  private NotifySendService notifySendService;
 
   public CommonResult<ImageTaskQueryResDTO> get(ImageTaskQueryReqVO imageTaskQueryReqVO) {
 
@@ -177,36 +185,89 @@ public class ImageTaskApiService {
     PageResult<ImageTaskDO> imageTaskDOPageResult = imageTaskService.pageQuery(imageTaskQueryReqVO);
     PageResult<ImageTaskQueryResDTO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImageTaskQueryResDTO.class);
     List<ImageTaskQueryResDTO> queryResDTOList = pageResult.getList();
+
+    if (CollectionUtils.isAnyEmpty(queryResDTOList)) {
+      return pageResult;
+    }
+
+    // 预收集ID，避免 N+1
+    Set<Long> taskIds = new HashSet<>();
+    Set<Long> creatorIds = new HashSet<>();
+    Set<Long> reviewerIds = new HashSet<>();
+    for (ImageTaskQueryResDTO dto : queryResDTOList) {
+      if (dto.getId() != null) {
+        taskIds.add(dto.getId());
+      }
+      if (dto.getCreatorId() != null) {
+        creatorIds.add(dto.getCreatorId());
+      }
+      if (dto.getReviewerId() != null) {
+        reviewerIds.add(dto.getReviewerId());
+      }
+    }
+
+    // 批量查询创建人
+    Map<Long, AdminUserDO> creatorMap = adminUserService.getUserMap(creatorIds);
+
+    // 批量查询审核人（绕过租户过滤）
+    Map<Long, AdminUserVO> reviewerMap = userInfoService.getUsersByIds(reviewerIds);
+
+    // 收集部门ID并批量查询部门
+    Set<Long> deptIds = new HashSet<>();
+    if (creatorMap != null && !creatorMap.isEmpty()) {
+      for (AdminUserDO user : creatorMap.values()) {
+        if (user.getDeptId() != null) {
+          deptIds.add(user.getDeptId());
+        }
+      }
+    }
+    if (reviewerMap != null && !reviewerMap.isEmpty()) {
+      for (AdminUserVO user : reviewerMap.values()) {
+        if (user.getDeptId() != null) {
+          deptIds.add(user.getDeptId());
+        }
+      }
+    }
+    Map<Long, DeptDO> deptMap = deptIds.isEmpty() ? Collections.emptyMap() : deptService.getDeptMap(deptIds);
+
+    // 批量查询文章并按任务ID分组
+    List<ArticleDO> allArticles = taskIds.isEmpty() ? Lists.newArrayList() : articleService.queryListByTaskIds(Lists.newArrayList(taskIds));
+    Map<Long, List<ArticleDO>> articlesByTaskId = Maps.newHashMap();
+    for (ArticleDO article : allArticles) {
+      if (article.getTaskId() == null) {
+        continue;
+      }
+      articlesByTaskId.computeIfAbsent(article.getTaskId(), k -> Lists.newArrayList()).add(article);
+    }
+
+    // 组装返回结果
     for (ImageTaskQueryResDTO queryResDTO : queryResDTOList) {
 
       queryResDTO.setRole(roleDo.getCode());
 
-      // 补充创建用户信息
-//      if (roleDo.getCode().equalsIgnoreCase("super_admin") || roleDo.getCode().equalsIgnoreCase("Research_admin")){
-        AdminUserDO createUser = adminUserService.getUser(queryResDTO.getCreatorId());
-        if (Objects.nonNull(createUser)) {
-          queryResDTO.setUserName(createUser.getNickname());
-          DeptDO deptDO = deptService.getDept(createUser.getDeptId());
-          if (Objects.nonNull(deptDO)) {
-            queryResDTO.setUserUnit(deptDO.getName());
-          }
+      // 创建人信息
+      AdminUserDO createUser = creatorMap.get(queryResDTO.getCreatorId());
+      if (Objects.nonNull(createUser)) {
+        queryResDTO.setUserName(createUser.getNickname());
+        DeptDO deptDO = deptMap.get(createUser.getDeptId());
+        if (Objects.nonNull(deptDO)) {
+          queryResDTO.setUserUnit(deptDO.getName());
         }
-//      }
+      }
 
-
-      // 补充审核用户信息
-      if (queryResDTO.getReviewerId() != null){
-         AdminUserVO reviewUser = userInfoService.getUserById(queryResDTO.getReviewerId());
+      // 审核人信息
+      if (queryResDTO.getReviewerId() != null) {
+        AdminUserVO reviewUser = reviewerMap.get(queryResDTO.getReviewerId());
         if (Objects.nonNull(reviewUser)) {
           queryResDTO.setReviewUserName(reviewUser.getUsername());
-          DeptDO reviewDeptDO = deptService.getDept(reviewUser.getDeptId());
+          DeptDO reviewDeptDO = deptMap.get(reviewUser.getDeptId());
           if (Objects.nonNull(reviewDeptDO)) {
             queryResDTO.setReviewUserUnit(reviewDeptDO.getName());
           }
         }
       }
 
-      // 补充论文标题、杂志社、作者、作者单位
+      // 文章与文件信息
       Map<Long, String> articleTitleMap = Maps.newHashMap();
       Map<Long, String> articleJournalMap = Maps.newHashMap();
       Map<Long, List<String>> authorNameMap = Maps.newHashMap();
@@ -214,9 +275,9 @@ public class ImageTaskApiService {
       List<String> fileUrlList = Lists.newArrayList();
       List<String> imageList = Lists.newArrayList();
 
-      List<ArticleDO> articleDOList = articleService.queryListByTaskId(queryResDTO.getId());
+      List<ArticleDO> articleDOList = articlesByTaskId.getOrDefault(queryResDTO.getId(), Collections.emptyList());
       for (ArticleDO articleDO : articleDOList) {
-        if (queryResDTO.getFileType().equals("pdf")){
+        if ("pdf".equals(queryResDTO.getFileType())) {
           articleTitleMap.put(articleDO.getId(), articleDO.getArticleTitle());
           articleJournalMap.put(articleDO.getId(), articleDO.getArticleJournal());
           authorNameMap.put(articleDO.getId(), articleDO.getAuthorName());
@@ -319,13 +380,13 @@ public class ImageTaskApiService {
       articleDO.setArticleKeywords(Lists.newArrayList());
       articleDO.setAuthorName(Lists.newArrayList());
       articleDO.setAuthorInstitution(Lists.newArrayList());
-      
+
       // 设置默认值
       articleDO.setArticleJournal("");
       articleDO.setArticleTitle("");
       articleDO.setPmid("");
       articleDO.setMedicalSpecialty("");
-      
+
       articleDOList.add(articleDO);
     }
     Boolean success = articleService.batchCreate(articleDOList);
@@ -346,6 +407,15 @@ public class ImageTaskApiService {
     updateImageTaskStatus.setTaskStatus(TaskStatusEnum.ALGO_DETECT.getCode());
     imageTaskService.update(updateImageTaskStatus);
     log.info("createTask【8/8】end update task, taskId={}", imageTaskDO.getId());
+
+    // 发送站内信
+    Long userId = WebFrameworkUtils.getLoginUserId();
+    AdminUserDO adminUserDO = adminUserService.getUser(userId);
+    String templateCode = "fileUploadSuccess";
+    Map<String, Object> templateParams = new HashMap<>();
+    templateParams.put("userName", adminUserDO.getNickname());
+    templateParams.put("files", fileList.stream().map(FileContent::getFileName).collect(Collectors.joining(", ")));
+    notifySendService.sendSingleNotifyToMember(userId, templateCode, templateParams);
 
     return imageTaskResDTO;
   }
@@ -402,7 +472,7 @@ public class ImageTaskApiService {
     if (Objects.isNull(imageTaskDO)) {
       return CommonResult.error(500, "任务不存在【" + id + "】");
     }
-    
+
     // 清空专家分配信息
     Integer sum = imageTaskService.clearExpertUser(id);
     if (Objects.isNull(sum) || sum < 1){
@@ -420,45 +490,45 @@ public class ImageTaskApiService {
     if (Objects.isNull(imageTaskDO)) {
       return CommonResult.error(500, "任务不存在【" + id + "】");
     }
-    
+
     // 只有审核中的任务才允许修改
     if (!Objects.equals(imageTaskDO.getTaskStatus(), TaskStatusEnum.EXPERT_REVIEW.getCode())) {
       return CommonResult.error(500, "只有审核中的任务可以修改");
     }
-    
+
     // 更新任务基本信息
     ImageTaskDO updateTask = new ImageTaskDO();
     updateTask.setId(id);
     updateTask.setTaskType(updateReqVO.getTaskType());
     updateTask.setReviewResult(updateReqVO.getReviewResult());
-    
+
     Integer sum = imageTaskService.update(updateTask);
     if (Objects.isNull(sum) || sum < 1){
       return CommonResult.error(500, "更新任务失败，请联系管理员");
     }
-    
+
     // 更新文章信息
     if (!CollectionUtils.isAnyEmpty(updateReqVO.getArticleTitleList(), updateReqVO.getArticleJournalList())) {
-      
+
       List<ArticleDO> articleDOList = articleService.queryListByTaskId(id);
       if (!CollectionUtils.isAnyEmpty(articleDOList)) {
         // 更新文章标题和杂志名
         for (int i = 0; i < articleDOList.size(); i++) {
           ArticleDO articleDO = articleDOList.get(i);
-          
+
           if (updateReqVO.getArticleTitleList() != null && i < updateReqVO.getArticleTitleList().size()) {
             articleDO.setArticleTitle(updateReqVO.getArticleTitleList().get(i));
           }
-          
+
           if (updateReqVO.getArticleJournalList() != null && i < updateReqVO.getArticleJournalList().size()) {
             articleDO.setArticleJournal(updateReqVO.getArticleJournalList().get(i));
           }
-          
+
           articleService.update(articleDO);
         }
       }
     }
-    
+
     return CommonResult.success("success");
   }
 

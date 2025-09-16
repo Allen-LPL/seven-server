@@ -97,7 +97,6 @@ public class ReportController {
 
     @GetMapping("/page")
     @Operation(summary = "获得报告分页")
-    @PreAuthorize("@ss.hasPermission('system:report:query')")
     public CommonResult<PageResult<ReportPageRespVO>> getReportPage(@Valid ReportPageReqVO pageVO) {
         PageResult<ReportPageRespVO> pageResult = reportService.getReportPage(pageVO);
         return success(pageResult);

@@ -2,7 +2,6 @@ package cn.iocoder.yudao.module.system.service.task;
 
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.service.task.dto.PdfParseResultDTO;
-import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -13,12 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -40,7 +36,7 @@ public class PdfParseService {
     public CompletableFuture<PdfParseResultDTO> parsePdfAsync(String filePath) {
         try {
             log.info("开始异步解析PDF文件：{}", filePath);
-            
+
             File file = new File(filePath);
             if (!file.exists()) {
                 log.error("PDF文件不存在：{}", filePath);
@@ -125,7 +121,7 @@ public class PdfParseService {
     public void transArticleToPdf(ArticleDO updateArticle, PdfParseResultDTO parseResult) {
         // 更新文章标题
         if (parseResult.getTitle() != null) {
-            updateArticle.setArticleTitle(parseResult.getTitle().substring(Math.min(1000, parseResult.getTitle().length())));
+            updateArticle.setArticleTitle(parseResult.getTitle().substring(0, Math.min(1000, parseResult.getTitle().length())));
         }
 
         // 更新杂志名称
@@ -145,19 +141,45 @@ public class PdfParseService {
 
         // 更新作者单位列表
         if (parseResult.getAuthorAffiliations() != null && !parseResult.getAuthorAffiliations().isEmpty()) {
-            updateArticle.setAuthorInstitution(parseResult.getAuthorAffiliations());
+            // 后端返回为 List<List<String>>，需要拍平为 List<String>
+            java.util.List<String> flat = new java.util.ArrayList<>();
+            for (java.util.List<String> group : parseResult.getAuthorAffiliations()) {
+                if (group != null && !group.isEmpty()) {
+                    flat.add(String.join(", ", group));
+                }
+            }
+            updateArticle.setAuthorInstitution(flat);
         }
 
         // 更新发表日期
         if (parseResult.getPublicationDate() != null) {
             try {
-                // 假设日期格式为 yyyy-MM-dd，需要转换为时间戳
-                java.time.LocalDate date = java.time.LocalDate.parse(parseResult.getPublicationDate());
-                updateArticle.setArticleDate(date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000);
+                String pub = parseResult.getPublicationDate();
+                Long millis;
+                if (pub.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                    // yyyy-MM-dd
+                    java.time.LocalDate date = java.time.LocalDate.parse(pub);
+                    millis = date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000;
+                } else if (pub.matches("^\\d{13}$")) {
+                    // 时间戳字符串（毫秒）
+                    millis = Long.parseLong(pub);
+                } else if (pub.matches("^\\d{10}$")) {
+                    // 时间戳字符串（秒）
+                    millis = Long.parseLong(pub) * 1000;
+                } else {
+                    // 兜底：尝试解析 ISO 或者返回 0
+                    try {
+                        java.time.LocalDate date = java.time.LocalDate.parse(pub);
+                        millis = date.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000;
+                    } catch (Exception ignore) {
+                        millis = 0L;
+                    }
+                }
+                updateArticle.setArticleDate(millis);
             } catch (Exception e) {
                 log.warn("解析发表日期失败: {}", parseResult.getPublicationDate());
             }
-        }else {
+        } else {
             try {
                 updateArticle.setArticleDate(0L);
             }catch (Exception e){
@@ -170,4 +192,4 @@ public class PdfParseService {
             updateArticle.setPmid(parseResult.getDoi().substring(0,Math.min(29,parseResult.getDoi().length()))); // 暂时将DOI存储在PMID字段
         }
     }
-} 
+}

@@ -86,12 +86,6 @@ public class ImgSimilarApiService {
 
 
   public PageResult<ImgSimilarQueryResVO> query(ImgSimilarityQueryReqVO reqVO){
-
-    // 保存搜索偏好
-    if (Objects.nonNull(reqVO.getTaskId())) {
-        taskSearchPreferencesService.saveSearchPreferences(reqVO);
-    }
-
     // 当前用户角色
     AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
     if (Objects.isNull(adminUserDO)) {
@@ -102,6 +96,11 @@ public class ImgSimilarApiService {
       throw new RuntimeException("用户未分配角色");
     }
 
+    // 保存搜索偏好
+    if (userRoles.stream().anyMatch(role -> role.getCode().equals("super_admin")) && Objects.nonNull(reqVO.getTaskId())) {
+      taskSearchPreferencesService.saveSearchPreferences(reqVO);
+  }
+
     // 填充默认值
     if (CollectionUtils.isEmpty(reqVO.getModelNameList())){
       reqVO.setModelNameList(Lists.newArrayList(ModelNameEnum.DenseNet121.getCode()));
@@ -111,22 +110,16 @@ public class ImgSimilarApiService {
     }else {
       reqVO.setSimilarScoreThreshold(ModelNameEnum.DenseNet121.getScore());
     }
-    if (Objects.isNull(reqVO.getFeaturePoints())){
-      reqVO.setFeaturePoints(2);
+    // 特征点：支持多个，默认使用 [2]
+    if (Objects.isNull(reqVO.getFeaturePoints()) || reqVO.getFeaturePoints().isEmpty()){
+      reqVO.setFeaturePoints(Lists.newArrayList(2));
     }
     if (CollectionUtils.isEmpty(reqVO.getImageTypeList())){
       reqVO.setImageTypeList(Lists.newArrayList(ImageTypeEnum.MEDICAL.getCode()));
     }
 
-    if (reqVO.getFeaturePoints() == 2){
-      reqVO.setFeaturePointStart(1);
-      reqVO.setFeaturePointEnd(6);
-    }else if (reqVO.getFeaturePoints() == 6){
-      reqVO.setFeaturePointStart(6);
-      reqVO.setFeaturePointEnd(26);
-    }else if (reqVO.getFeaturePoints() == 100){
-      reqVO.setFeaturePointStart(26);
-    }
+    // 依据多个特征点值智能计算区间范围
+    reqVO.computeFeaturePointRange();
 
     PageResult<ImgSimilarityDO> imageTaskDOPageResult = imgSimilarityService.pageResult(reqVO);
     PageResult<ImgSimilarQueryResVO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImgSimilarQueryResVO.class);
@@ -319,7 +312,7 @@ public class ImgSimilarApiService {
     resVO.setDotImage(dotImage.replace(taskConfig.getReplacePrefix(),FilePathConstant.local_prefix ));
     return CommonResult.success(resVO);
   }
-  
+
   /**
    * 删除审核意见
    *
@@ -330,16 +323,16 @@ public class ImgSimilarApiService {
     if (Objects.isNull(id)) {
       return CommonResult.error(500, "相似对id不能为空");
     }
-    
+
     ImgSimilarityDO imgSimilarityDO = imgSimilarityService.getById(id);
     if (Objects.isNull(imgSimilarityDO)) {
       return CommonResult.error(500, "相似对不存在【" + id + "】");
     }
-    
+
     ImgSimilarityDO updateImgSimilar = new ImgSimilarityDO();
     updateImgSimilar.setId(id);
     updateImgSimilar.setReviewComment(""); // 清空审核意见
-    
+
     Integer sum = imgSimilarityService.updateById(updateImgSimilar);
     if (Objects.isNull(sum) || sum < 1) {
       return CommonResult.error(500, "删除审核意见失败，请联系管理员");
@@ -382,8 +375,9 @@ public class ImgSimilarApiService {
                 resVO.getDefaultImageTypeList().sort(Comparator.comparing(dto -> !preferredTypes.contains(dto.getCode())));
             }
             if (Objects.nonNull(preferences.getFeaturePoints())) {
-                resVO.getDefaultFeaturePointsList().forEach(dto -> dto.setSelected(dto.getValue().equals(preferences.getFeaturePoints())));
-                resVO.getDefaultFeaturePointsList().sort(Comparator.comparing(dto -> !dto.getValue().equals(preferences.getFeaturePoints())));
+                List<Integer> featurePoints = JSON.parseArray(preferences.getFeaturePoints(), Integer.class);
+                resVO.getDefaultFeaturePointsList().forEach(dto -> dto.setSelected(featurePoints.contains(dto.getValue())));
+                resVO.getDefaultFeaturePointsList().sort(Comparator.comparing(dto -> !featurePoints.contains(dto.getValue())));
                 resVO.getDefaultFeaturePointsList().forEach(dto -> {
                   Integer value = dto.getValue();
                   if (value != null) {

@@ -12,7 +12,7 @@ public class PdfParseResultDTO {
     private List<String> authors;
 
     @JsonProperty("author_affiliations")
-    private List<String> authorAffiliations;
+    private List<List<String>> authorAffiliations;
 
     @JsonProperty("doi")
     private String doi;
@@ -49,4 +49,4 @@ public class PdfParseResultDTO {
 
     // 错误信息字段（非API返回，用于内部处理）
     private String errorMessage;
-} 
+}
