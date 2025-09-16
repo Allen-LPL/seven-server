@@ -75,7 +75,7 @@ public class SimilarController {
       return imgSimilarApiService.compare(id);
     }catch (Exception e) {
       log.error("compare error，",e);
-      return CommonResult.error(new ErrorCode(500, e.getMessage()));
+      return CommonResult.error(new ErrorCode(500, "未生成图片数据"));
     }
   }
 

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptListReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptRespVO;
 import cn.iocoder.yudao.module.system.controller.admin.dept.vo.dept.DeptSaveReqVO;
@@ -45,6 +46,7 @@ public class DeptController {
 
     @PostMapping("create-child")
     @Operation(summary = "创建子部门", description = "创建parentId=100的子部门")
+    @TenantIgnore
     @PermitAll
     public CommonResult<Long> createChildDept(@RequestParam("name") String name) {
         Long deptId = deptService.createChildDept(name);

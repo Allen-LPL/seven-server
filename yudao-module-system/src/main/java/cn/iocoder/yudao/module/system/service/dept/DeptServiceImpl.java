@@ -56,14 +56,13 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisKeyConstants.DEPT_CHILDREN_ID_LIST,
-            allEntries = true) // allEntries 清空所有缓存，因为操作一个部门，涉及到多个缓存
+    @CacheEvict(cacheNames = RedisKeyConstants.DEPT_CHILDREN_ID_LIST, allEntries = true) // allEntries 清空所有缓存，因为操作一个部门，涉及到多个缓存
     public Long createChildDept(String name) {
         // 固定 parentId=100
         final Long parentId = 100L;
-        
+
         // 校验父部门的有效性
-        validateParentDept(null, parentId);
+        // validateParentDept(null, parentId);
         // 校验部门名的唯一性
         validateDeptNameUnique(null, parentId, name);
 
@@ -73,6 +72,7 @@ public class DeptServiceImpl implements DeptService {
         dept.setParentId(parentId);
         dept.setSort(0); // 默认排序值
         dept.setStatus(CommonStatusEnum.ENABLE.getStatus()); // 默认启用状态
+        dept.setTenantId(1L);
 
         // 插入部门
         deptMapper.insert(dept);
@@ -213,6 +213,7 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
+    @DataPermission(enable = false)
     public List<DeptDO> getDirectChildDeptList(Long parentId) {
         if (parentId == null) {
             return Collections.emptyList();

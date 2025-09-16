@@ -22,6 +22,7 @@ import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
 import cn.iocoder.yudao.module.system.enums.task.FileTypeEnum;
 import cn.iocoder.yudao.module.system.enums.task.TaskStatusEnum;
 import cn.iocoder.yudao.module.system.enums.task.VectorQueryTypeEnum;
+import cn.iocoder.yudao.module.system.service.notify.NotifySendService;
 import cn.iocoder.yudao.module.system.service.task.ArticleService;
 import cn.iocoder.yudao.module.system.service.task.ImageTaskService;
 import cn.iocoder.yudao.module.system.service.task.ImgReportService;
@@ -38,6 +39,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -96,6 +98,9 @@ public class TaskImageProcessService {
 
   @Resource
   private QueryImageTypeService queryImageTypeService;
+
+  @Resource
+  private NotifySendService notifySendService;
 
   public void processAsync(Long taskId){
     CompletableFuture.runAsync(() -> {
@@ -260,10 +265,24 @@ public class TaskImageProcessService {
     log.info("processAsync【10/10】end update task status, taskId = {}, take {}ms", taskId,stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
     log.info("end process async, taskId = {}, fileType = {}, take {} ms", taskId, fileType, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+
+    // 发送站内信
+    sendNotify(taskId,userId);
+    sendNotify(taskId,1L);
+
     stopwatch.stop();
   }
 
-
+  // 发送站内信
+  private void sendNotify(Long taskId, Long userId) {
+    AdminUserDO adminUserDO = adminUserService.getUser(userId);
+    String templateCode = "algorithmDoneToReviewer";
+    Map<String, Object> templateParams = new HashMap<>();
+    templateParams.put("userName", adminUserDO.getNickname());
+    templateParams.put("taskNo", taskId);
+    notifySendService.sendSingleNotifyToMember(userId, templateCode, templateParams);
+  }
 
   private String getReportName(){
     try {

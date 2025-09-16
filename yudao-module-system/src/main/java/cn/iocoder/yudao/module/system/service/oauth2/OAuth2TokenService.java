@@ -30,6 +30,18 @@ public interface OAuth2TokenService {
     OAuth2AccessTokenDO createAccessToken(Long userId, Integer userType, String clientId, List<String> scopes);
 
     /**
+     * 创建访问令牌（自定义有效期）
+     *
+     * @param userId 用户编号
+     * @param userType 用户类型
+     * @param clientId 客户端编号
+     * @param scopes 授权范围
+     * @param ttlSeconds 自定义有效期（秒）
+     * @return 访问令牌的信息
+     */
+    OAuth2AccessTokenDO createAccessToken(Long userId, Integer userType, String clientId, List<String> scopes, long ttlSeconds);
+
+    /**
      * 刷新访问令牌
      *
      * 参考 DefaultTokenServices 的 refreshAccessToken 方法

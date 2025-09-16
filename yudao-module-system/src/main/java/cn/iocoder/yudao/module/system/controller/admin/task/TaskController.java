@@ -15,10 +15,15 @@ import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskCre
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskReviewReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.task.ImageTaskUpdateReqVO;
+import cn.iocoder.yudao.module.system.service.notify.NotifySendService;
+
 import com.alibaba.fastjson.JSONObject;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.Map;
+
 import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -45,6 +50,9 @@ public class TaskController {
   @Resource
   private ImageTaskApiService imageTaskApiService;
 
+  @Resource
+  private NotifySendService notifySendService;
+
   @RequestMapping(method = RequestMethod.POST, value = "/create" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public CommonResult<ImageTaskCreateResVO> create( @Parameter(description = "上传文件", content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE)) @RequestPart("files") MultipartFile[] files,
       @RequestParam("taskType") Integer taskType, @RequestParam("fileType") String fileType,
@@ -58,6 +66,7 @@ public class TaskController {
         reqVO.setTaskStrategyConfig(JSONObject.parseObject(taskStrategyConfig, TaskStrategyConfig.class));
       }
       ImageTaskCreateResDTO imageTaskResDTO =  imageTaskApiService.createTask(reqVO);
+
       return CommonResult.success(BeanUtils.toBean(imageTaskResDTO, ImageTaskCreateResVO.class));
     }catch (Exception e) {
       log.error("创建检测任务失败, ",e);

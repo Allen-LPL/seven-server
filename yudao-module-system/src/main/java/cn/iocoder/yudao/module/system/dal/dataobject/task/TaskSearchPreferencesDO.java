@@ -38,7 +38,7 @@ public class TaskSearchPreferencesDO extends BaseDO {
     /**
      * 特征点数量
      */
-    private Integer featurePoints;
+    private String featurePoints;
     /**
      * 相似度阈值
      */
