@@ -487,8 +487,33 @@ public class MilvusOperateService {
         .withPrimaryIds(smallImageIds)
         .build();
     R<DeleteResponse> deleteResponseR = imageMilvusClient.delete(deleteIdsParam);
-    log.info("delete response : {}", JSONObject.toJSONString(deleteResponseR));
-    return  deleteResponseR!=null && deleteResponseR.getStatus() == 0;
+    // 完整的null检查
+    if (deleteResponseR == null) {
+      log.error("Milvus删除操作返回null响应, collection: {}, ids: {}", collectionName, smallImageIds);
+      return false;
+    }
+
+    log.info("delete response status: {}, message: {}",
+        deleteResponseR.getStatus(), deleteResponseR.getMessage());
+
+    // 检查操作状态（Milvus通常状态码0表示成功）
+    if (deleteResponseR.getStatus() != 0) {
+      log.error("Milvus删除失败, collection: {}, ids: {}, status: {}, message: {}",
+          collectionName, smallImageIds, deleteResponseR.getStatus(), deleteResponseR.getMessage());
+      return false;
+    }
+
+    // 检查响应数据
+    DeleteResponse data = deleteResponseR.getData();
+    if (data == null) {
+      log.warn("Milvus删除响应数据为null, 但状态码成功, collection: {}, ids: {}",
+          collectionName, smallImageIds);
+      return true; // 状态码成功，可能还是认为操作成功
+    }
+
+    log.info("成功删除数据, collection: {}, 删除ID数: {}",collectionName, smallImageIds.size());
+
+    return true;
   }
 
   public void updateByPrimaryId(List<SmallImageMilvusDTO> smallImageMilvusDTOS) {
