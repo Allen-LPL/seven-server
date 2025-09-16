@@ -216,7 +216,7 @@ public class VectorQueryService {
     imgSimilarityDO.setSourceArticleId(vObj.getArticleId());
     imgSimilarityDO.setSourceLargeImageId(vObj.getLargeImageId());
     imgSimilarityDO.setTargetSmallImageId(similar.getSmallImageId());
-    imgSimilarityDO.setIsSimilar(Boolean.TRUE);
+    imgSimilarityDO.setIsSimilar(Boolean.FALSE);
     imgSimilarityDO.setSimilarityScore(similar.getScore());
     imgSimilarityDO.setAlgorithmName(similar.getModelName());
     return imgSimilarityDO;
