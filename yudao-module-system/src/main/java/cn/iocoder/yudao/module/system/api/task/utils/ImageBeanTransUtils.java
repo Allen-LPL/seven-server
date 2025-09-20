@@ -41,6 +41,7 @@ public class ImageBeanTransUtils {
     String name = path.substring(path.lastIndexOf("/")+1);
     log.info("path={},name={}", path, name);
     String vectorPath = path.replace(".jpg",".csv");
+    String coverPath = path.replace(".jpg","_cover.jpg");
     SmallImageDO smallImageDO = new SmallImageDO();
     smallImageDO.setArticleId(articleId);
     smallImageDO.setLargeImageId(largeImageId);
@@ -50,6 +51,7 @@ public class ImageBeanTransUtils {
     smallImageDO.setImageName(name);
     smallImageDO.setCreator(String.valueOf(WebFrameworkUtils.getLoginUserId()));
     smallImageDO.setImagePath(path);
+    smallImageDO.setCoverImagePath(coverPath);
     smallImageDO.setVectorPath(vectorPath);
     smallImageDO.setCreator("1");
     return smallImageDO;

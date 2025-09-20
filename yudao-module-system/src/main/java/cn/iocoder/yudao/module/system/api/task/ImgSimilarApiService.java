@@ -278,6 +278,8 @@ public class ImgSimilarApiService {
     JSONObject params = new JSONObject();
     params.put("smallImage",sourceSmallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
     params.put("duplicateSmallImage",targetSmallImageDO.getImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    params.put("coversmallImage",sourceSmallImageDO.getCoverImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
+    params.put("coverduplicateSmallImage",targetSmallImageDO.getCoverImagePath().replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
     String path = String.format(FilePathConstant.COMPARE_LOCAL_PATH, imgSimilarityDO.getTaskId());
     params.put("comparePath",path.replace(FilePathConstant.local_prefix, taskConfig.getReplacePrefix()));
     log.info("compare image params {}", params.toJSONString());
