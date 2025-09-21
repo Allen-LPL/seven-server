@@ -40,6 +40,8 @@ public class SmallImageDO extends BaseDO {
 
   private String imagePath;
 
+  private String coverImagePath;
+
   private Integer status;
 
   /**

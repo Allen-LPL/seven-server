@@ -330,7 +330,7 @@ pf4j:
 
 # scp /Users/fangliu/Downloads/ollama-linux-amd64.tgz root@server01:/data
 
-#  scp /Users/fangliu/PycharmProjects/clipmodel/image_similar/algo/0806/frozen_east_text_detection.pb root@server01:/data/yudao
+#  scp /Users/fangliu/PycharmProjects/clipmodel/image_similar/algo/0918/craft_mlt_25k.pth root@server01:/data/yudao
 
 #  scp /Users/fangliu/PycharmProjects/clipmodel/image_similar/algo/0915/doclayout_yolo_docstructbench_imgsz1024.pt root@server01:/data/yudao
 
