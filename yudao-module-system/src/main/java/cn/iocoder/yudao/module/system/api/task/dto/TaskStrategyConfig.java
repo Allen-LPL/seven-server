@@ -18,6 +18,6 @@ public class TaskStrategyConfig implements Serializable {
   private List<String> keywordList;
 
   @Schema(description = "策略查-学科类别", example = "1")
-  private Integer medicalSpecialty;
+  private String medicalSpecialty;
 
 }
