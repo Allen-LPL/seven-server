@@ -22,7 +22,7 @@ public interface StatisticsMapper {
      * @return 论文数量
      */
     @Select("<script>"
-            + "SELECT COUNT(*) FROM iisd_article "
+            + "SELECT COUNT(DISTINCT file_name) FROM iisd_article "
             + "WHERE deleted = 0 "
             + "<if test='startTime != null'> AND create_time >= #{startTime} </if>"
             + "</script>")
@@ -103,9 +103,10 @@ public interface StatisticsMapper {
      * @return 异常检测数量
      */
     @Select("<script>"
-            + "SELECT COUNT(*) FROM iisd_img_similarity "
-            + "WHERE deleted = 0 "
-            + "<if test='startTime != null'> AND create_time >= #{startTime} </if>"
+            + "SELECT COUNT(DISTINCT a.file_name) FROM iisd_img_similarity s "
+            + "LEFT JOIN iisd_article a ON s.source_article_id = a.id "
+            + "WHERE s.deleted = 0 "
+            + "<if test='startTime != null'> AND s.create_time >= #{startTime} </if>"
             + "</script>")
     Long countAbnormal(@Param("startTime") LocalDateTime startTime);
 
@@ -117,12 +118,13 @@ public interface StatisticsMapper {
      * @return 日期-数量映射
      */
     @Select("<script>"
-            + "SELECT DATE_FORMAT(create_time, '%Y-%m-%d') as date, COUNT(*) as count "
-            + "FROM iisd_img_similarity "
-            + "WHERE deleted = 0 "
-            + "<if test='startTime != null'> AND create_time >= #{startTime} </if>"
-            + "<if test='endTime != null'> AND create_time &lt;= #{endTime} </if>"
-            + "GROUP BY DATE_FORMAT(create_time, '%Y-%m-%d') "
+            + "SELECT DATE_FORMAT(s.create_time, '%Y-%m-%d') as date, COUNT(DISTINCT a.file_name) as count "
+            + "FROM iisd_img_similarity s "
+            + "LEFT JOIN iisd_article a ON s.source_article_id = a.id "
+            + "WHERE s.deleted = 0 "
+            + "<if test='startTime != null'> AND s.create_time >= #{startTime} </if>"
+            + "<if test='endTime != null'> AND s.create_time &lt;= #{endTime} </if>"
+            + "GROUP BY DATE_FORMAT(s.create_time, '%Y-%m-%d') "
             + "ORDER BY date ASC"
             + "</script>")
     List<Map<String, Object>> getAbnormalTrendList(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
@@ -135,7 +137,7 @@ public interface StatisticsMapper {
      * @return 关键词-数量映射（field: 关键词, count: 数量）
      */
     @Select("<script>"
-            + "SELECT IFNULL(jt.keyword, '未知') as field, COUNT(*) as count "
+            + "SELECT IFNULL(jt.keyword, '未知') as field, COUNT(DISTINCT a.file_name) as count "
             + "FROM iisd_img_similarity s "
             + "LEFT JOIN iisd_article a ON s.source_article_id = a.id "
             + "LEFT JOIN JSON_TABLE(COALESCE(a.article_keywords, JSON_ARRAY()), '$[*]' COLUMNS (keyword VARCHAR(255) PATH '$')) jt ON TRUE "
@@ -157,7 +159,7 @@ public interface StatisticsMapper {
      * @return 单位名称-数量映射（institution: 单位名称, count: 数量）
      */
     @Select("<script>"
-            + "SELECT jt.institution as institution, COUNT(*) as count "
+            + "SELECT jt.institution as institution, COUNT(DISTINCT a.file_name) as count "
             + "FROM iisd_img_similarity s "
             + "LEFT JOIN iisd_article a ON s.source_article_id = a.id "
             + "LEFT JOIN JSON_TABLE(COALESCE(a.author_institution, JSON_ARRAY()), '$[*]' COLUMNS (institution VARCHAR(512) PATH '$')) jt ON TRUE "

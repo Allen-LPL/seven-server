@@ -16,10 +16,16 @@ public interface ImageTaskMapper extends BaseMapperX<ImageTaskDO> {
         .eqIfPresent(ImageTaskDO::getId, reqVO.getId())
         .eqIfPresent(ImageTaskDO::getTaskType, reqVO.getTaskType())
         .eqIfPresent(ImageTaskDO::getTaskId, reqVO.getTaskId())
-        .eqIfPresent(ImageTaskDO::getCreatorId,reqVO.getCreatorId())
-        .eqIfPresent(ImageTaskDO::getReviewerId,reqVO.getReviewId())
         .eqIfPresent(ImageTaskDO::getIsCase, Boolean.TRUE.equals(reqVO.getCaseOnly()) ? 1 : null)
         .betweenIfPresent(ImageTaskDO::getCreateTime, reqVO.getStartTime(), reqVO.getEndTime())
+        .and(reqVO.getCreatorId() != null && reqVO.getReviewId() != null,
+            wrapper -> wrapper.eq(ImageTaskDO::getCreatorId, reqVO.getCreatorId())
+                .or()
+                .eq(ImageTaskDO::getReviewerId, reqVO.getReviewId()))
+        .eq(reqVO.getCreatorId() != null && reqVO.getReviewId() == null,
+            ImageTaskDO::getCreatorId, reqVO.getCreatorId())
+        .eq(reqVO.getReviewId() != null && reqVO.getCreatorId() == null,
+            ImageTaskDO::getReviewerId, reqVO.getReviewId())
         .orderByDesc(ImageTaskDO::getCreateTime,ImageTaskDO::getUpdateTime));
   }
 

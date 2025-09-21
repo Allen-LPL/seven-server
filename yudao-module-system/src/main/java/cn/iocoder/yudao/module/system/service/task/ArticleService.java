@@ -50,7 +50,7 @@ public class ArticleService {
     if (articleDO.getId() == null) {
       throw new RuntimeException("更新文章信息时，文章ID不能为空");
     }
-    
+
     // 现在ArticleDO有了正确的@TableId注解，可以直接使用updateById
     return articleMapper.updateById(articleDO);
   }

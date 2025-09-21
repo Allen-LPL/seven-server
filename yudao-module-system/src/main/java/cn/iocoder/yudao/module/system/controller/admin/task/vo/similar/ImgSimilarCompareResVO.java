@@ -14,6 +14,6 @@ public class ImgSimilarCompareResVO {
   @Schema(description = "线图")
   private String dotImage;
 
-  @Schema(description = "块图")
+  @Schema(description = "框图")
   private String blockImage;
 }

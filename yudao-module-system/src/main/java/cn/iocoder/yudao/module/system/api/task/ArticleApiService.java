@@ -206,4 +206,10 @@ public class ArticleApiService {
     }
   }
 
+  /**
+   * 获取所有文章的单位列表
+   */
+  public CommonResult<List<String>> queryAllUniList() {
+    return CommonResult.success(articleMapper.getAllUnitDistributionList());
+  }
 }

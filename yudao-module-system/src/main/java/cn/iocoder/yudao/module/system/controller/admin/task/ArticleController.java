@@ -90,4 +90,10 @@ public class ArticleController {
     articleApiService.updateFilesInBatch(updateReqVO);
     return success(true);
   }
+
+  @PostMapping("/queryAllUnitList")
+  public CommonResult<List<String>> postMethodName() {
+    return articleApiService.queryAllUniList();
+  }
+
 }

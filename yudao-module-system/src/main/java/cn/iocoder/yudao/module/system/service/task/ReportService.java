@@ -16,8 +16,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgSimilarityDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.TaskSearchPreferencesDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.dal.mysql.task.ImgReportMapper;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+// import com.google.common.collect.Lists;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -28,7 +27,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+// import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 
@@ -59,7 +58,6 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Text;
 import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.VerticalAlignment;
 import com.itextpdf.io.font.constants.StandardFonts;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -67,19 +65,15 @@ import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import java.net.URL;
 import java.net.URLConnection;
 
-import javax.annotation.Resource;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.concurrent.atomic.AtomicLong;
+// duplicate import removed
 
 // Query with preferences
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarityQueryReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarQueryResVO;
 import cn.iocoder.yudao.module.system.controller.admin.task.vo.similar.ImgSimilarCompareResVO;
-import cn.iocoder.yudao.framework.common.pojo.PageResult;
+// import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.api.task.ImgSimilarApiService;
-import cn.iocoder.yudao.module.system.service.task.TaskSearchPreferencesService;
+// import cn.iocoder.yudao.module.system.service.task.TaskSearchPreferencesService;
 import com.alibaba.fastjson.JSON;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
@@ -112,8 +106,10 @@ public class ReportService {
   private TaskSearchPreferencesService taskSearchPreferencesService;
   @Resource
   private ImgSimilarApiService imgSimilarApiService;
+  @Resource
+  private cn.iocoder.yudao.module.system.api.task.ImageTaskApiService imageTaskApiService;
 
-  private final AtomicLong idCounter = new AtomicLong(System.currentTimeMillis());
+  // private final AtomicLong idCounter = new AtomicLong(System.currentTimeMillis());
 
   /**
    * 生成报告并上传文件
@@ -207,7 +203,7 @@ public class ReportService {
       title.setAlignment(ParagraphAlignment.CENTER);
       XWPFRun titleRun = title.createRun();
       titleRun.addBreak();
-      titleRun.setText("图像相似检测报告");
+      titleRun.setText("论文图像相似检测报告");
       titleRun.setBold(true);
       titleRun.setFontSize(18);
       titleRun.addBreak();
@@ -217,7 +213,6 @@ public class ReportService {
       Long taskId = reqVO.getTaskId();
       ImageTaskDO task = imageTaskService.getById(taskId);
       String fileType = task != null ? task.getFileType() : "";
-      Integer reviewResult = task != null ? task.getReviewResult() : null; // 2 无异常 3 有异常
 
       // 论文元信息（仅 PDF 有）
       List<ArticleDO> articleDOList = articleService.queryListByTaskId(taskId);
@@ -299,7 +294,7 @@ public class ReportService {
         unit = "篇PDF";
       } else {
               uploadCnt = task != null && task.getTotalImages() != null ? task.getTotalImages() : 0;
-      unit = "张图片";
+      unit = "对图片";
     }
 
     // 获取用户昵称
@@ -317,7 +312,7 @@ public class ReportService {
     resultRun.setFontSize(12);
     resultPara.setAlignment(ParagraphAlignment.LEFT);
     resultPara.setIndentationFirstLine(480); // 缩进两个中文字符（24pt = 480 twips）
-    resultRun.setText("  检测结果：尊敬的" + nickName + "，您上传" + uploadCnt + unit + "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "篇图片" : "张图片") + "可能存在相似异常，具体情况如下：");
+    resultRun.setText("  检测结果：尊敬的" + nickName + "，您上传" + uploadCnt + unit + "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "对图片" : "张图片") + "可能存在相似异常，具体情况如下：");
 
       // ============ 图片对表格（参照 PDF：第一页 1 组、之后每页 3 组）============
       List<ImgSimilarityDO> similars = similarsAll;
@@ -344,7 +339,7 @@ public class ReportService {
           gRun.setText("【" + groupIndex + "】");
           gRun.setBold(true);
 
-          // 四列：上传图片、相似图片、块图、线图（若缺失则显示占位文字）
+          // 四列：上传图片、相似图片、框图、线图（若缺失则显示占位文字）
           org.apache.poi.xwpf.usermodel.XWPFTable table = doc.createTable(2, 4);
           // 以 A4 内容宽度为基准，按 1/6、1/6、1/3、1/3 设置列宽，确保表格严格落在 A4 可写区域内
           int contentWidthTwips = getWordContentWidthTwips(doc);
@@ -394,13 +389,13 @@ public class ReportService {
 
           addImageCell(table, 0, 0, sourcePath, "上传图片缺失");
           addImageCell(table, 0, 1, targetPath, "相似图片缺失");
-          addImageCell(table, 0, 2, blockImage, "块图缺失");
+          addImageCell(table, 0, 2, blockImage, "框图缺失");
           addImageCell(table, 0, 3, dotImage, "线图缺失");
 
           // 第二行：标题
           setCellText(table, 1, 0, "【上传图片】");
           setCellText(table, 1, 1, "【相似图片】");
-          setCellText(table, 1, 2, "【块图】");
+          setCellText(table, 1, 2, "【框图】");
           setCellText(table, 1, 3, "【线图】");
 
           // 相似程度 + 评语
@@ -632,11 +627,11 @@ public class ReportService {
         unit = "篇PDF";
       } else {
         uploadCnt = task != null && task.getTotalImages() != null ? task.getTotalImages() : 0;
-        unit = "张图片";
+        unit = "对图片";
       }
 
       Paragraph resultPara = new Paragraph("  检测结果：尊敬的" + nickName + "，您上传" + uploadCnt + unit +
-          "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "篇图片" : "张图片") +
+          "，经检测对比后，其中有" + similarCnt + ("pdf".equalsIgnoreCase(fileType) ? "对图片" : "对图片") +
           "可能存在相似异常，具体情况如下：")
           .setFont(chineseFont)
           .setFontSize(12)
@@ -737,7 +732,7 @@ public class ReportService {
             .setMarginTop(10);
         document.add(groupTitle);
 
-        // 创建表格：2行4列（上传图片、相似图片、块图、线图）
+        // 创建表格：2行4列（上传图片、相似图片、框图、线图）
         com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(4);
         table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
 
@@ -765,13 +760,13 @@ public class ReportService {
         // 第一行：图片标题
         table.addCell(createTableCell("【上传图片】", font));
         table.addCell(createTableCell("【相似图片】", font));
-        table.addCell(createTableCell("【块图】", font));
+        table.addCell(createTableCell("【框图】", font));
         table.addCell(createTableCell("【线图】", font));
 
         // 第二行：图片或占位文字（后续可替换为实际图片插入逻辑）
         table.addCell(createImageOrTextCell(sourcePath, "上传图片缺失", font));
         table.addCell(createImageOrTextCell(targetPath, "相似图片缺失", font));
-        table.addCell(createImageOrTextCell(blockImage, "块图缺失", font));
+        table.addCell(createImageOrTextCell(blockImage, "框图缺失", font));
         table.addCell(createImageOrTextCell(dotImage, "线图缺失", font));
 
         document.add(table);
@@ -814,7 +809,7 @@ public class ReportService {
   }
 
   /**
-   * 获取块图/线图路径
+   * 获取框图/线图路径
    */
   private String getBlockDotImagePath(String imagePath, String staticPath) {
     if (imagePath == null || imagePath.trim().isEmpty()) return null;
@@ -1038,7 +1033,7 @@ public class ReportService {
           case 1: // 相似图片 - 1/6宽度
             imageWidth = 60; // 较小宽度
             break;
-          case 2: // 块图 - 1/3宽度
+          case 2: // 框图 - 1/3宽度
           case 3: // 线图 - 1/3宽度
             imageWidth = 120; // 较大宽度
             break;
@@ -1122,46 +1117,8 @@ public class ReportService {
     border.setColor("FFFFFF"); // 白色
   }
 
-  // 设置表格列宽比例
-  private void setTableColumnWidths(org.apache.poi.xwpf.usermodel.XWPFTable table, int[] widths) {
-    try {
-      // 获取表格属性
-      org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblPr tblPr = table.getCTTbl().getTblPr();
-      if (tblPr == null) {
-        tblPr = table.getCTTbl().addNewTblPr();
-      }
-
-      // 设置表格宽度为100%
-      org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth tblWidth = tblPr.getTblW();
-      if (tblWidth == null) {
-        tblWidth = tblPr.addNewTblW();
-      }
-      tblWidth.setType(org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth.DXA);
-      tblWidth.setW(java.math.BigInteger.valueOf(10000)); // 总宽度10000 twips
-
-      // 设置每列的宽度
-      for (org.apache.poi.xwpf.usermodel.XWPFTableRow row : table.getRows()) {
-        for (int i = 0; i < row.getTableCells().size() && i < widths.length; i++) {
-          org.apache.poi.xwpf.usermodel.XWPFTableCell cell = row.getCell(i);
-          org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr tcPr = cell.getCTTc().getTcPr();
-          if (tcPr == null) {
-            tcPr = cell.getCTTc().addNewTcPr();
-          }
-
-          org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth cellWidth = tcPr.getTcW();
-          if (cellWidth == null) {
-            cellWidth = tcPr.addNewTcW();
-          }
-          cellWidth.setType(org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth.DXA);
-          cellWidth.setW(java.math.BigInteger.valueOf(widths[i]));
-        }
-      }
-
-      log.info("表格列宽设置完成: {}", java.util.Arrays.toString(widths));
-    } catch (Exception e) {
-      log.error("设置表格列宽失败：{}", e.getMessage());
-    }
-  }
+  // 设置表格列宽比例（方法已停用）
+  // private void setTableColumnWidths(org.apache.poi.xwpf.usermodel.XWPFTable table, int[] widths) { }
 
   /**
    * 设置表格宽度为内容区宽度，并精确设置各列宽
@@ -1211,9 +1168,31 @@ public class ReportService {
    */
   public PageResult<ReportPageRespVO> getReportPage(ReportPageReqVO pageReqVO) {
     pageReqVO.setPageNo(pageReqVO.getPageNo() - 1);
-    Long creatorId = cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils.getLoginUserId();
-    List<ReportPageRespVO> reportPageRespVOList = imgReportMapper.selectReportAndTaskPage(pageReqVO, creatorId);
-    Long total = imgReportMapper.selectCounts(pageReqVO, creatorId);
+    Long userId = cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils.getLoginUserId();
+
+    // 基于角色决定可见范围
+    String roleCode = imageTaskApiService.getCurrentUserPrimaryRoleCode();
+
+    List<ReportPageRespVO> reportPageRespVOList;
+    Long total;
+
+    if ("super_admin".equals(roleCode)) {
+      // 系统管理员：查看所有报告
+      reportPageRespVOList = imgReportMapper.selectManagerReportAndTaskPage(pageReqVO);
+      total = imgReportMapper.selectManagerCounts(pageReqVO);
+    } else if ("Research_admin".equals(roleCode)) {
+      // 科研管理员：自己上传 + 自己分配给专家的任务
+      reportPageRespVOList = imgReportMapper.selectReportAndTaskPage(pageReqVO, userId);
+      total = imgReportMapper.selectCounts(pageReqVO, userId);
+    } else if ("Expert_admin".equals(roleCode)) {
+      // 专家用户：仅自己被分配审核（reviewer）的任务
+      reportPageRespVOList = imgReportMapper.selectReviewerReportAndTaskPage(pageReqVO, userId);
+      total = imgReportMapper.selectReviewerCounts(pageReqVO, userId);
+    } else {
+      // 普通用户：仅自己上传
+      reportPageRespVOList = imgReportMapper.selectCreatorReportAndTaskPage(pageReqVO, userId);
+      total = imgReportMapper.selectCreatorCounts(pageReqVO, userId);
+    }
     log.info("total: {}, reportPageRespVOList: {}", total, reportPageRespVOList);
     if (total == null || total == 0) {
       return new PageResult<>(reportPageRespVOList, total);

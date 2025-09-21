@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.api.task;
 
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.LocalDateTimeUtil;
+import cn.hutool.core.util.ObjUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.collection.CollectionUtils;
@@ -85,9 +86,13 @@ public class ImageTaskApiService {
   @Resource
   private NotifySendService notifySendService;
 
-  public CommonResult<ImageTaskQueryResDTO> get(ImageTaskQueryReqVO imageTaskQueryReqVO) {
-
-    // 当前用户角色
+  /**
+   * 获取当前登录用户的主角色编码。
+   * 角色优先取缓存中的第一个角色。
+   *
+   * @return 角色编码（如：super_admin、Research_admin、Expert_admin、Common）
+   */
+  public String getCurrentUserPrimaryRoleCode() {
     AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
     if (Objects.isNull(adminUserDO)) {
       throw new RuntimeException("用户未登录");
@@ -97,17 +102,24 @@ public class ImageTaskApiService {
       throw new RuntimeException("用户未分配角色");
     }
     RoleDO roleDo = userRoles.get(0);
+    return roleDo.getCode();
+  }
+
+  public CommonResult<ImageTaskQueryResDTO> get(ImageTaskQueryReqVO imageTaskQueryReqVO) {
+
+    // 当前用户角色
+    String roleCode = getCurrentUserPrimaryRoleCode();
 
     // 如果是专家 只能看到分配给他的
-    if (roleDo.getCode().equals("Expert_admin")) {
+    if (roleCode.equals("Expert_admin")) {
       imageTaskQueryReqVO.setReviewId(WebFrameworkUtils.getLoginUserId());
-    } else if (roleDo.getCode().equals("Common")) {
+    } else if (roleCode.equals("Common")) {
       imageTaskQueryReqVO.setCreatorId(WebFrameworkUtils.getLoginUserId());
     }
 
     ImageTaskDO imageTaskDO = imageTaskService.getById(imageTaskQueryReqVO.getTaskId());
     ImageTaskQueryResDTO queryResDTO = BeanUtils.toBean(imageTaskDO, ImageTaskQueryResDTO.class);
-    queryResDTO.setRole(roleDo.getCode());
+    queryResDTO.setRole(roleCode);
 
     // 补充创建用户信息
     //      if (roleDo.getCode().equalsIgnoreCase("super_admin") || roleDo.getCode().equalsIgnoreCase("Research_admin")){
@@ -162,25 +174,26 @@ public class ImageTaskApiService {
     return CommonResult.success(queryResDTO);
   }
 
+  private void handleImageTaskQuery(ImageTaskQueryReqVO imageTaskQueryReqVO, String roleCode){
+        // 如果是专家 只能看到分配给他的
+        if (roleCode.equals("Expert_admin")){
+          if (ObjUtil.isNull(imageTaskQueryReqVO.getCreatorId()) && ObjUtil.isNull(imageTaskQueryReqVO.getReviewId())) {
+
+            imageTaskQueryReqVO.setReviewId(WebFrameworkUtils.getLoginUserId());
+            imageTaskQueryReqVO.setCreatorId(WebFrameworkUtils.getLoginUserId());
+          }
+        }else if (roleCode.equals("Common")){
+          imageTaskQueryReqVO.setCreatorId(WebFrameworkUtils.getLoginUserId());
+        }
+
+  }
+
   public PageResult<ImageTaskQueryResDTO> query(ImageTaskQueryReqVO imageTaskQueryReqVO){
 
     // 当前用户角色
-    AdminUserDO adminUserDO = adminUserService.getUser(WebFrameworkUtils.getLoginUserId());
-    if (Objects.isNull(adminUserDO)) {
-      throw new RuntimeException("用户未登录");
-    }
-    List<RoleDO> userRoles = roleService.getRoleListFromCache(permissionService.getUserRoleIdListByUserId(adminUserDO.getId()));
-    if (CollectionUtils.isAnyEmpty(userRoles)){
-      throw new RuntimeException("用户未分配角色");
-    }
-    RoleDO roleDo = userRoles.get(0);
+    String roleCode = getCurrentUserPrimaryRoleCode();
 
-    // 如果是专家 只能看到分配给他的
-    if (roleDo.getCode().equals("Expert_admin")){
-      imageTaskQueryReqVO.setReviewId(WebFrameworkUtils.getLoginUserId());
-    }else if (roleDo.getCode().equals("Common")){
-      imageTaskQueryReqVO.setCreatorId(WebFrameworkUtils.getLoginUserId());
-    }
+    handleImageTaskQuery(imageTaskQueryReqVO, roleCode);
 
     PageResult<ImageTaskDO> imageTaskDOPageResult = imageTaskService.pageQuery(imageTaskQueryReqVO);
     PageResult<ImageTaskQueryResDTO> pageResult = BeanUtils.toBean(imageTaskDOPageResult, ImageTaskQueryResDTO.class);
@@ -243,7 +256,7 @@ public class ImageTaskApiService {
     // 组装返回结果
     for (ImageTaskQueryResDTO queryResDTO : queryResDTOList) {
 
-      queryResDTO.setRole(roleDo.getCode());
+      queryResDTO.setRole(roleCode);
 
       // 创建人信息
       AdminUserDO createUser = creatorMap.get(queryResDTO.getCreatorId());
