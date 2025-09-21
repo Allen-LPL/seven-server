@@ -415,7 +415,7 @@ public class ImageTaskApiService {
     Map<String, Object> templateParams = new HashMap<>();
     templateParams.put("userName", adminUserDO.getNickname());
     templateParams.put("files", fileList.stream().map(FileContent::getFileName).collect(Collectors.joining(", ")));
-    notifySendService.sendSingleNotifyToMember(userId, templateCode, templateParams);
+    notifySendService.sendSingleNotifyToAdmin(userId, templateCode, templateParams);
 
     return imageTaskResDTO;
   }

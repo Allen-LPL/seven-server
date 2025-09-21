@@ -268,7 +268,6 @@ public class TaskImageProcessService {
 
 
     // 发送站内信
-    sendNotify(taskId,userId);
     sendNotify(taskId,1L);
 
     stopwatch.stop();
@@ -281,7 +280,7 @@ public class TaskImageProcessService {
     Map<String, Object> templateParams = new HashMap<>();
     templateParams.put("userName", adminUserDO.getNickname());
     templateParams.put("taskNo", taskId);
-    notifySendService.sendSingleNotifyToMember(userId, templateCode, templateParams);
+    notifySendService.sendSingleNotifyToAdmin(userId, templateCode, templateParams);
   }
 
   private String getReportName(){

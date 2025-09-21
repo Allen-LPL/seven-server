@@ -40,6 +40,7 @@ public class DeptController {
     @Operation(summary = "创建部门")
     @PreAuthorize("@ss.hasPermission('system:dept:create')")
     public CommonResult<Long> createDept(@Valid @RequestBody DeptSaveReqVO createReqVO) {
+        createReqVO.setSort(0);
         Long deptId = deptService.createDept(createReqVO);
         return success(deptId);
     }
