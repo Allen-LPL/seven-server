@@ -69,7 +69,7 @@ public class MilvusRecallService {
             .toEpochMilli();
         exprList.add(MilvusConstant.articleDate +" <= "+timestamp);
       }else if (Objects.nonNull(taskStrategyConfig.getMedicalSpecialty())){
-        exprList.add( MilvusConstant.specialty +" == '"+taskStrategyConfig.getMedicalSpecialty()+"'");
+        exprList.add( MilvusConstant.institution +" == '"+taskStrategyConfig.getMedicalSpecialty()+"'"); // todo
       }else if (CollectionUtils.isNotEmpty(taskStrategyConfig.getKeywordList())){
         //exprList.add(MilvusConstant.keywords + " in " + convertListToMilvusExpression(taskStrategyConfig.getKeywordList()));
         exprList.add(buildArrayKeywordExpression(taskStrategyConfig.getKeywordList()));
