@@ -70,3 +70,5 @@ env-deploy.zip
 report/
 report-pdf/
 report-word/
+
+./deploy-backend-api02.sh
