@@ -41,7 +41,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "    creator_dept.name as user_unit, " +
             "    admin.nickname as review_user_name, " +
             "    admin_dept.name as review_user_unit " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN ( " +
             "        SELECT DISTINCT id FROM ( " +
             "            SELECT id FROM iisd_img_task <if test='creatorId != null'>WHERE deleted = 0 AND creator_id = #{creatorId}</if> " +
@@ -78,7 +83,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
 
     @Select("<script>" +
             "SELECT COUNT(DISTINCT r.id) " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN ( " +
             "        SELECT DISTINCT id FROM ( " +
             "            SELECT id FROM iisd_img_task <if test='creatorId != null'>WHERE deleted = 0 AND creator_id = #{creatorId}</if> " +
@@ -119,7 +129,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "    creator_dept.name as user_unit, " +
             "    admin.nickname as review_user_name, " +
             "    admin_dept.name as review_user_unit " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN iisd_img_task t ON r.task_id = t.id " +
             "    LEFT JOIN system_users creator ON t.creator_id = creator.id " +
             "    LEFT JOIN system_dept creator_dept ON creator.dept_id = creator_dept.id " +
@@ -147,7 +162,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
 
     @Select("<script>" +
             "SELECT COUNT(DISTINCT r.id) " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN iisd_img_task t ON r.task_id = t.id " +
             "<where>" +
             "    t.deleted = 0 AND r.deleted = 0 " +
@@ -178,7 +198,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "    creator_dept.name as user_unit, " +
             "    admin.nickname as review_user_name, " +
             "    admin_dept.name as review_user_unit " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN iisd_img_task t ON r.task_id = t.id " +
             "    LEFT JOIN system_users creator ON t.creator_id = creator.id " +
             "    LEFT JOIN system_dept creator_dept ON creator.dept_id = creator_dept.id " +
@@ -207,7 +232,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
 
     @Select("<script>" +
             "SELECT COUNT(DISTINCT r.id) " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN iisd_img_task t ON r.task_id = t.id " +
             "<where>" +
             "    t.deleted = 0 AND r.deleted = 0 " +
@@ -239,7 +269,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
             "    creator_dept.name as user_unit, " +
             "    admin.nickname as review_user_name, " +
             "    admin_dept.name as review_user_unit " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN iisd_img_task t ON r.task_id = t.id " +
             "    LEFT JOIN system_users creator ON t.creator_id = creator.id " +
             "    LEFT JOIN system_dept creator_dept ON creator.dept_id = creator_dept.id " +
@@ -268,7 +303,12 @@ public interface ImgReportMapper extends BaseMapperX<ImgReportDO> {
 
     @Select("<script>" +
             "SELECT COUNT(DISTINCT r.id) " +
-            "FROM iisd_img_report r " +
+            "FROM ( " +
+            "    SELECT * FROM ( " +
+            "        SELECT r.*, ROW_NUMBER() OVER(PARTITION BY r.task_id ORDER BY r.create_time DESC, r.id DESC) AS rn " +
+            "        FROM iisd_img_report r WHERE r.deleted = 0 " +
+            "    ) r1 WHERE r1.rn = 1 " +
+            ") r " +
             "    JOIN iisd_img_task t ON r.task_id = t.id " +
             "<where>" +
             "    t.deleted = 0 AND r.deleted = 0 " +

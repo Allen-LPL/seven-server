@@ -40,6 +40,9 @@ if [[ ! -f "$JAR_PATH" ]]; then
     exit 1
 fi
 
+log_info "重新构建jar包"
+mvn clean package -DskipTests
+
 log_info "开始部署后端服务..."
 log_info "JAR文件路径: $JAR_PATH"
 log_info "远程主机: $REMOTE_HOST"

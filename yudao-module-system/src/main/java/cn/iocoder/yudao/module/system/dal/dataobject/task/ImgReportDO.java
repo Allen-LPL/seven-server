@@ -42,7 +42,7 @@ public class ImgReportDO extends BaseDO {
 
   private String imageTypeList;
 
-  private Integer featurePoints = 5;
+  private String featurePoints;
 
   private Double similarThreshold;
 

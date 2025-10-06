@@ -481,6 +481,12 @@ public class ReportService {
     // 名称采用与 PDF 一致的编号策略
     report.setReportName(reportNumber);
     report.setReportPath(reportPath);
+    report.setReviewerId(task.getReviewerId());
+    report.setReviewTime(LocalDateTime.now());
+    report.setModelList(searchPreferences.getModelName());
+    report.setImageTypeList(searchPreferences.getImageTypes());
+    report.setFeaturePoints(searchPreferences.getFeaturePoints());
+    report.setSimilarThreshold(searchPreferences.getSimilarScoreThreshold());
     report.setStatus(1); // 已完成
     report.setReportType(3); // 报告类型: Word 报告（与 PDF 区分，2=任务报告(PDF)，3=任务报告(Word)）
     report.setCreateTime(LocalDateTime.now());
@@ -547,7 +553,7 @@ public class ReportService {
       document.add(reportNumberPara);
 
       // 标题（居中，黑体）
-      Paragraph title = new Paragraph("图像相似检测报告")
+      Paragraph title = new Paragraph("论文图像相似检测报告")
           .setFont(chineseFont)
           .setFontSize(18)
           .setBold()
