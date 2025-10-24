@@ -23,6 +23,8 @@ import cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ArticleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.task.ImageTaskDO;
+import cn.iocoder.yudao.module.system.dal.dataobject.task.ImgReportDO;
+import cn.iocoder.yudao.module.system.dal.mysql.task.ImgReportMapper;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.dal.mysql.user.AdminUserInfoServiceImpl;
 import cn.iocoder.yudao.module.system.enums.task.FilePathConstant;
@@ -51,6 +53,7 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 @Service
 @Slf4j
@@ -85,6 +88,9 @@ public class ImageTaskApiService {
 
   @Resource
   private NotifySendService notifySendService;
+
+  @Resource
+  private ImgReportMapper imgReportMapper;
 
   /**
    * 获取当前登录用户的主角色编码。
@@ -243,6 +249,20 @@ public class ImageTaskApiService {
     }
     Map<Long, DeptDO> deptMap = deptIds.isEmpty() ? Collections.emptyMap() : deptService.getDeptMap(deptIds);
 
+    // 批量查询最新报告并按任务ID分组
+    List<ImgReportDO> latestReports = taskIds.isEmpty() ? Lists.newArrayList() : imgReportMapper.selectList(
+        new LambdaQueryWrapper<ImgReportDO>()
+            .in(ImgReportDO::getTaskId, taskIds)
+            .eq(ImgReportDO::getDeleted, 0)
+            .orderByDesc(ImgReportDO::getCreateTime)
+    );
+    Map<Long, ImgReportDO> reportsByTaskId = Maps.newHashMap();
+    for (ImgReportDO report : latestReports) {
+      if (report.getTaskId() != null && !reportsByTaskId.containsKey(report.getTaskId())) {
+        reportsByTaskId.put(report.getTaskId(), report);
+      }
+    }
+
     // 批量查询文章并按任务ID分组
     List<ArticleDO> allArticles = taskIds.isEmpty() ? Lists.newArrayList() : articleService.queryListByTaskIds(Lists.newArrayList(taskIds));
     Map<Long, List<ArticleDO>> articlesByTaskId = Maps.newHashMap();
@@ -307,6 +327,12 @@ public class ImageTaskApiService {
       queryResDTO.setArticleJournalMap(articleJournalMap);
       queryResDTO.setAuthorNameMap(authorNameMap);
       queryResDTO.setAuthorInstitutionMap(authorInstitutionMap);
+      
+      // 设置最新报告路径
+      ImgReportDO report = reportsByTaskId.get(queryResDTO.getId());
+      if (Objects.nonNull(report)) {
+        queryResDTO.setReportPath(report.getReportPath());
+      }
     }
     return pageResult;
   }

@@ -144,4 +144,9 @@ public class ImageTaskQueryResDTO {
    */
   private Integer isCase;
 
+  /**
+   * 报告路径
+   */
+  private String reportPath;
+
 }

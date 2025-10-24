@@ -485,7 +485,12 @@ public class ReportService {
     report.setReviewTime(LocalDateTime.now());
     report.setModelList(searchPreferences.getModelName());
     report.setImageTypeList(searchPreferences.getImageTypes());
-    report.setFeaturePoints(searchPreferences.getFeaturePoints());
+    // featurePoints already stored as JSON string in searchPreferences, keep as is
+    if (searchPreferences.getFeaturePoints() != null) {
+      report.setFeaturePoints(searchPreferences.getFeaturePoints());
+    } else {
+      report.setFeaturePoints("[]");
+    }
     report.setSimilarThreshold(searchPreferences.getSimilarScoreThreshold());
     report.setStatus(1); // 已完成
     report.setReportType(3); // 报告类型: Word 报告（与 PDF 区分，2=任务报告(PDF)，3=任务报告(Word)）
